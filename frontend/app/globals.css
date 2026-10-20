@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+/* Style "framed-sheet" (taste-skill seed 237270840): khung xám-xanh hình chữ L, nội dung trên tấm trắng, không bóng đổ */
+:root {
+  --ground: #f3f6f7; /* khung tô theo màu teal của sản phẩm */
+  --surface: #ffffff;
+  --raised: #f4f6f8;
+  --active: #e6eaec;
+  --border: #e8eaec;
+  --rule: #f0f1f2;
+  --control: #cdced1;
+  --ink: #131416;
+  --muted: #5d5f60;
+  --accent: #1b6c80;
+  --positive: #1e7b4f;
+  --negative: #c4242a;
+  --neutral-mark: #b4b8bc;
+  --star: #a86f0c;
+  --primary: #1d1f20;
+}
+
+@theme inline {
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-active: var(--active);
+  --color-border: var(--border);
+  --color-rule: var(--rule);
+  --color-control: var(--control);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-star: var(--star);
+  --color-primary: var(--primary);
+  --font-sans: var(--font-plex), system-ui, sans-serif;
+}
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+@layer components {
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+  .panel {
+    @apply rounded-lg border border-border bg-surface;
+  }
+  .btn {
+    @apply inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-md border border-control bg-surface px-3 text-sm font-medium whitespace-nowrap text-ink transition-colors duration-150 hover:bg-raised active:bg-active disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary {
+    /* dùng chung với .btn: class="btn btn-primary" — nút chính màu gần đen, mỗi màn hình một nút */
+    @apply border-primary bg-primary text-white hover:bg-[#33363a] active:bg-black;
+  }
+  .input {
+    @apply h-10 w-full rounded-md border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted;
+  }
+  .control {
+    @apply h-8 rounded-md border border-control bg-surface px-2 text-sm text-ink;
+  }
+  .label {
+    @apply mb-2 block text-sm font-medium;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}

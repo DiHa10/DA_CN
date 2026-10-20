@@ -1,0 +1,19 @@
+epoch 1: loss 2704.5  val macro-F1 0.3434  (67s)
+  -> saved best to D:\DA_CN\ml\models\absa
+epoch 2: loss 1881.4  val macro-F1 0.5392  (70s)
+  -> saved best to D:\DA_CN\ml\models\absa
+epoch 3: loss 1312.1  val macro-F1 0.6135  (70s)
+  -> saved best to D:\DA_CN\ml\models\absa
+epoch 4: loss 955.1  val macro-F1 0.6444  (71s)
+  -> saved best to D:\DA_CN\ml\models\absa
+epoch 5: loss 730.9  val macro-F1 0.6559  (71s)
+  -> saved best to D:\DA_CN\ml\models\absa
+epoch 6: loss 548.9  val macro-F1 0.6547  (70s)
+epoch 7: loss 417.8  val macro-F1 0.6838  (74s)
+  -> saved best to D:\DA_CN\ml\models\absa
+epoch 8: loss 319.8  val macro-F1 0.6694  (70s)
+epoch 9: loss 236.6  val macro-F1 0.6815  (70s)
+epoch 10: loss 189.7  val macro-F1 0.6756  (70s)
+epoch 11: loss 162.3  val macro-F1 0.6744  (71s)
+epoch 12: loss 144.2  val macro-F1 0.6743  (71s)
+best val macro-F1 0.6838

@@ -1,0 +1,8 @@
+backend/.venv/
+*.db
+__pycache__/
+.pytest_cache/
+ml/data/
+ml/models/
+.pg/
+.taste-skill/*/

@@ -1,0 +1,9 @@
+# Cài vào venv của backend (ml/ import code từ backend/app/services):
+#   backend/.venv/Scripts/python -m pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cu124
+#   backend/.venv/Scripts/python -m pip install -r ml/requirements.txt
+transformers==4.46.3
+scikit-learn==1.5.2
+underthesea==9.5.0  # 6.x không có wheel cho Python 3.12
+huggingface_hub==0.36.2
+matplotlib==3.9.2
+joblib
