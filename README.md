@@ -4,6 +4,39 @@
 - `frontend/`: Next.js
 - `ml/`: train và đánh giá model ABSA (từ điển / TF-IDF / PhoBERT) trên VLSP 2018 nhà hàng
 
+## Chạy nhanh sau khi clone (Windows)
+Cần cài: Git, Python 3.12, Node.js 20 trở lên. Chạy các lệnh dưới trong **Git Bash**, tại thư mục repo.
+
+**1. Backend** (dùng SQLite, không cần cài PostgreSQL):
+```bash
+cd backend && python -m venv .venv && .venv/Scripts/python -m pip install -r requirements.txt
+```
+```bash
+.venv/Scripts/python seed.py
+```
+```bash
+.venv/Scripts/python -m uvicorn app.main:app --reload
+```
+`seed.py` tạo 300 review mẫu và tài khoản demo (email và mật khẩu ghi ở đầu file `backend/seed.py`).
+
+**2. Frontend** (mở thêm một cửa sổ Git Bash):
+```bash
+cd frontend && npm install && npm run dev
+```
+Mở http://localhost:3000 rồi đăng nhập bằng tài khoản demo.
+
+**3. Bật PhoBERT (không bắt buộc).** Không có model thì backend tự dùng bộ từ điển, web vẫn chạy bình thường.
+- Tải `absa-model.zip` ở mục **Releases** của repo trên GitHub, giải nén vào `ml/models/` để có thư mục `ml/models/absa/`.
+- Cài torch (máy không có GPU NVIDIA thì bỏ phần `--index-url ...`, pip sẽ cài bản CPU):
+```bash
+backend/.venv/Scripts/python -m pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cu124
+```
+- Chạy backend kèm biến môi trường (trong thư mục `backend`):
+```bash
+NLP_MODEL_DIR=../ml/models/absa .venv/Scripts/python -m uvicorn app.main:app --reload
+```
+Nếu `seed.py` đã chạy trước khi bật PhoBERT, xóa `backend/dev.db` rồi chạy lại `seed.py` (cũng đặt `NLP_MODEL_DIR`) để review mẫu được phân tích bằng PhoBERT.
+
 ## Train model (dùng venv của backend)
 ```bash
 backend/.venv/Scripts/python -m pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cu124

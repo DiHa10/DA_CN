@@ -6,3 +6,5 @@ ml/data/
 ml/models/
 .pg/
 .taste-skill/*/
+.claude/
+*.zip
