@@ -153,9 +153,12 @@ def _owned_review(review_id: int, store: Store, db: Session) -> Review:
 @router.post("/{review_id}/reply-draft", response_model=ReplyDraft)
 def reply_draft(review_id: int, store: Store = Depends(get_owned_store), db: Session = Depends(get_db)):
     review = _owned_review(review_id, store, db)
-    draft_limit.hit(str(store.id))
+    draft_limit.check(str(store.id))  # chỉ tính lượt khi AI trả kết quả: lần lỗi không tốn tiền
+    db.commit()  # trả kết nối DB về pool trước khi chờ AI (vài giây tới cả phút)
     try:
-        return ReplyDraft(reply_text=reply.draft(store, review))
+        text = reply.draft(store, review)
+        draft_limit.hit(str(store.id))
+        return ReplyDraft(reply_text=text)
     except LLMError as e:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(e))
 

@@ -22,9 +22,11 @@ def latest(store: Store = Depends(get_owned_store), db: Session = Depends(get_db
 
 @router.post("", response_model=InsightOut)
 def regenerate(store: Store = Depends(get_owned_store), db: Session = Depends(get_db)):
-    per_store.hit(str(store.id))
+    per_store.check(str(store.id))  # chỉ tính lượt khi AI trả kết quả: lần lỗi không tốn tiền
     try:
-        return insights.generate(db, store)
+        result = insights.generate(db, store)
+        per_store.hit(str(store.id))
+        return result
     except insights.NothingToAnalyze as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))
     except LLMError as e:

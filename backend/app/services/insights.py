@@ -12,6 +12,7 @@ from . import llm
 
 WINDOW_DAYS = 30
 PER_ASPECT = 40  # đủ để thấy vấn đề lặp lại, giữ prompt và chi phí nhỏ
+MAX_CHARS = 300  # review Foody dài cả nghìn ký tự; 300 ký tự đầu đủ thấy khách chê gì, chi phí giảm nhiều lần
 
 SYSTEM = f"""Bạn là chuyên gia vận hành nhà hàng, giúp chủ quán ăn ở Việt Nam đọc góp ý tiêu cực của khách.
 {llm.UNTRUSTED_NOTE}
@@ -62,12 +63,13 @@ def collect_negative(db: Session, store: Store, now: datetime) -> tuple[dict[str
     for _, content, aspect in rows:
         counts[aspect] = counts.get(aspect, 0) + 1
         if len(samples.setdefault(aspect, [])) < PER_ASPECT:
-            samples[aspect].append(content)
+            samples[aspect].append(content[:MAX_CHARS])
     return samples, counts, len({r.id for r in rows})
 
 
 def generate(db: Session, store: Store) -> StoreInsight:
     samples, counts, n_reviews = collect_negative(db, store, datetime.now(timezone.utc))
+    db.commit()  # trả kết nối DB về pool trước khi chờ AI (có thể tới cả phút)
     if not samples:
         raise NothingToAnalyze(f"Chưa có đánh giá tiêu cực nào trong {WINDOW_DAYS} ngày qua để phân tích")
 
