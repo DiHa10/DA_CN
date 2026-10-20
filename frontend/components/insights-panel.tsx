@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 const formatTime = (iso: string) =>
   new Date(iso).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric" });
 
-// Tóm tắt AI: vấn đề chính và việc nên làm theo khía cạnh. Lưu ở backend nên mở trang không tốn lượt gọi AI.
+// Tóm tắt AI: vấn đề chính và việc nên làm theo khía cạnh. Lưu ở backend nên mở trang không phải chạy AI lại.
 export function InsightsPanel({ storeId }: { storeId: number }) {
   const [insight, setInsight] = useState<Insight | null | undefined>(undefined); // undefined = đang tải
   const [busy, setBusy] = useState(false);
@@ -50,7 +50,7 @@ export function InsightsPanel({ storeId }: { storeId: number }) {
       {error && <p role="alert" className="px-5 pt-3 text-sm text-negative">{error}</p>}
       {insight === undefined && !error && <p className="px-5 py-4 text-sm text-muted">Đang tải…</p>}
       {insight === null && !error && (
-        <p className="px-5 py-4 text-sm text-muted">Chưa có gợi ý. Bấm “Tạo gợi ý” (mỗi lần tạo là một lượt gọi AI có tính phí).</p>
+        <p className="px-5 py-4 text-sm text-muted">Chưa có gợi ý. Bấm “Tạo gợi ý” để AI chạy trên máy đọc đánh giá (mất khoảng nửa phút).</p>
       )}
 
       {c && (

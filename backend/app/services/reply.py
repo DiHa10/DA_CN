@@ -32,5 +32,5 @@ def draft(store: Store, review: Review) -> str:
         "khia_canh": {ASPECT_VI.get(a.aspect, a.aspect): SENTIMENT_VI[a.sentiment] for a in review.aspects},
     }
     out = llm.generate_json(SYSTEM, f"Đánh giá của khách (JSON):\n{json.dumps(data, ensure_ascii=False)}",
-                            SCHEMA, effort="low")
+                            SCHEMA)
     return out["reply"].strip()

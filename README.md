@@ -116,14 +116,17 @@ Mở http://localhost:3000. Frontend gọi backend qua proxy `/api/backend/*` (�
 Thử form QR trên điện thoại: mở dashboard bằng địa chỉ mạng LAN (ví dụ `http://192.168.x.x:3000`), không dùng `localhost`, để mã QR trỏ đúng máy.
 
 ## Tóm tắt AI, gợi ý trả lời, báo cáo tuần
-Đặt biến môi trường cho backend (không commit lên git):
+Phần AI ("Gợi ý cải thiện" ở Tổng quan, "Gợi ý bằng AI" khi trả lời review) dùng model **Qwen2.5 3B chạy trên máy qua Ollama**: miễn phí, không cần mạng, nội dung review không gửi ra ngoài. Chưa chạy Ollama thì các nút AI báo "Chưa chạy Ollama", phần còn lại của web vẫn chạy.
 
-| Biến | Dùng cho |
-|---|---|
-| `ANTHROPIC_API_KEY` | Tóm tắt "Gợi ý cải thiện" ở Tổng quan và nút "Gợi ý bằng AI" khi trả lời review (model `claude-opus-5-5`, tính phí theo lượt gọi). Thiếu thì các nút AI báo "Chưa cấu hình AI", phần còn lại vẫn chạy. |
-| `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_USER`, `SMTP_PASSWORD` | Gửi báo cáo tuần. Với Gmail, `SMTP_PASSWORD` là **App Password** (Google Account → Bảo mật → Mật khẩu ứng dụng), không phải mật khẩu đăng nhập. Thiếu `SMTP_HOST` thì email được lưu thành file trong `backend/outbox/`. |
+**Cài Ollama (một lần):** tải bản cài từ https://ollama.com/download hoặc bản portable `ollama-windows-amd64.zip` ở https://github.com/ollama/ollama/releases, rồi tải model (~1,9GB):
+```bash
+ollama pull qwen2.5:3b
+```
+Ollama phải đang chạy khi bấm nút AI (bản cài tự chạy nền; bản portable chạy `ollama serve`). Mỗi lần tóm tắt mất khoảng 10–60 giây tùy GPU; máy không có GPU NVIDIA vẫn chạy được nhưng chậm hơn.
 
-Báo cáo tuần bật trong trang Cửa hàng; backend tự gửi lúc 8:00 sáng thứ Hai (giờ VN). Nội dung review được gửi tới Anthropic để AI xử lý.
+Biến môi trường tùy chọn cho backend: `OLLAMA_URL` (mặc định `http://127.0.0.1:11434`), `LLM_MODEL` (mặc định `qwen2.5:3b`, có thể đổi sang model lớn hơn nếu GPU đủ, ví dụ `qwen2.5:7b`).
+
+**Báo cáo tuần qua email:** đặt `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_USER`, `SMTP_PASSWORD` (không commit lên git). Với Gmail, `SMTP_PASSWORD` là **App Password** (Google Account → Bảo mật → Mật khẩu ứng dụng), không phải mật khẩu đăng nhập. Thiếu `SMTP_HOST` thì email được lưu thành file trong `backend/outbox/`. Bật báo cáo trong trang Cửa hàng; backend tự gửi lúc 8:00 sáng thứ Hai (giờ VN).
 
 ## Chạy production (demo công khai)
 - Đặt `APP_ENV=production` cho backend. Backend sẽ không khởi động nếu thiếu `SECRET_KEY` hoặc khóa ngắn hơn 32 ký tự, và tắt `/docs`. Tạo khóa:

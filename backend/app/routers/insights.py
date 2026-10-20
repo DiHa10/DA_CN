@@ -11,7 +11,7 @@ from ..services.llm import LLMError
 
 router = APIRouter(prefix="/stores/{store_id}/insights", tags=["insights"])
 
-# mỗi lần tạo tóm tắt là một lần gọi AI có tính phí
+# mỗi lần tạo tóm tắt chiếm GPU vài chục giây
 per_store = SlidingWindow(10, 3600, "Đã tạo tóm tắt nhiều lần trong giờ này, thử lại sau")
 
 
@@ -22,7 +22,7 @@ def latest(store: Store = Depends(get_owned_store), db: Session = Depends(get_db
 
 @router.post("", response_model=InsightOut)
 def regenerate(store: Store = Depends(get_owned_store), db: Session = Depends(get_db)):
-    per_store.check(str(store.id))  # chỉ tính lượt khi AI trả kết quả: lần lỗi không tốn tiền
+    per_store.check(str(store.id))  # chỉ tính lượt khi AI trả kết quả thành công
     try:
         result = insights.generate(db, store)
         per_store.hit(str(store.id))

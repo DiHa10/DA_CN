@@ -139,7 +139,7 @@ async def import_reviews(file: UploadFile, tasks: BackgroundTasks, store: Store 
     return {"imported": len(reviews), "skipped": skipped}
 
 
-# mỗi gợi ý là một lần gọi AI có tính phí
+# mỗi gợi ý chiếm GPU vài giây
 draft_limit = SlidingWindow(60, 3600, "Đã gợi ý quá nhiều câu trả lời trong giờ này, thử lại sau")
 
 
@@ -153,7 +153,7 @@ def _owned_review(review_id: int, store: Store, db: Session) -> Review:
 @router.post("/{review_id}/reply-draft", response_model=ReplyDraft)
 def reply_draft(review_id: int, store: Store = Depends(get_owned_store), db: Session = Depends(get_db)):
     review = _owned_review(review_id, store, db)
-    draft_limit.check(str(store.id))  # chỉ tính lượt khi AI trả kết quả: lần lỗi không tốn tiền
+    draft_limit.check(str(store.id))  # chỉ tính lượt khi AI trả kết quả thành công
     db.commit()  # trả kết nối DB về pool trước khi chờ AI (vài giây tới cả phút)
     try:
         text = reply.draft(store, review)

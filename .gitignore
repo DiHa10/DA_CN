@@ -9,3 +9,4 @@ ml/models/
 .claude/
 *.zip
 backend/outbox/
+.ollama/

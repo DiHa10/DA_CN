@@ -11,36 +11,30 @@ from ..models import Review, ReviewAspect, Store, StoreInsight, utcnow
 from . import llm
 
 WINDOW_DAYS = 30
-PER_ASPECT = 40  # đủ để thấy vấn đề lặp lại, giữ prompt và chi phí nhỏ
-MAX_CHARS = 300  # review Foody dài cả nghìn ký tự; 300 ký tự đầu đủ thấy khách chê gì, chi phí giảm nhiều lần
+PER_ASPECT = 20  # mỗi lần gọi chỉ một khía cạnh: 20 x 200 ký tự ~ 2k token, vừa sức model 3B
+MAX_CHARS = 200
+
+# Phạm vi từng khía cạnh: một review hay chê nhiều thứ, model nhỏ cần biết phần nào thuộc khía cạnh đang xét
+ASPECT_SCOPE = {
+    "food": "món ăn: vị, độ tươi, nhiệt độ, trình bày, khẩu phần",
+    "drink": "đồ uống: cà phê, trà, bia, nước ép, đá",
+    "service": "nhân viên, chủ quán, thái độ, tốc độ lên món, order sai, tính tiền",
+    "price": "giá cả, phụ thu, khuyến mãi, có đáng tiền không",
+    "ambience": "không gian: chỗ ngồi, trang trí, nhạc, ánh sáng, độ ồn, vệ sinh, nhà vệ sinh",
+    "location": "vị trí: dễ hay khó tìm, đường vào, chỗ để xe",
+}
 
 SYSTEM = f"""Bạn là chuyên gia vận hành nhà hàng, giúp chủ quán ăn ở Việt Nam đọc góp ý tiêu cực của khách.
 {llm.UNTRUSTED_NOTE}
-Với mỗi khía cạnh có trong dữ liệu:
-- problem: 1-2 câu nêu điều khách phàn nàn lặp lại nhiều nhất, dựa đúng vào các đánh giá, không suy diễn thêm.
-- actions: 2-3 việc cụ thể chủ quán làm được ngay trong quán, mỗi việc một câu ngắn.
-headline: một câu nói việc nên ưu tiên số một.
-Viết tiếng Việt, ngắn gọn, giọng thân thiện. Chỉ đưa vào các khía cạnh có trong dữ liệu."""
+Bạn chỉ xét MỘT khía cạnh được nêu. Một đánh giá có thể chê nhiều thứ: chỉ dùng phần nói về khía cạnh đó, bỏ qua phần còn lại.
+- problem: 1-2 câu nêu điều khách phàn nàn lặp lại nhiều nhất về khía cạnh này, dựa đúng vào các đánh giá.
+- actions: 2-3 việc cụ thể chủ quán làm được ngay trong quán để sửa đúng vấn đề đó, mỗi việc một câu ngắn.
+Viết tiếng Việt, ngắn gọn, giọng thân thiện."""
 
 SCHEMA = {
     "type": "object",
-    "properties": {
-        "headline": {"type": "string"},
-        "aspects": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "aspect": {"type": "string", "enum": list(ASPECT_VI)},
-                    "problem": {"type": "string"},
-                    "actions": {"type": "array", "items": {"type": "string"}},
-                },
-                "required": ["aspect", "problem", "actions"],
-                "additionalProperties": False,
-            },
-        },
-    },
-    "required": ["headline", "aspects"],
+    "properties": {"problem": {"type": "string"}, "actions": {"type": "array", "items": {"type": "string"}}},
+    "required": ["problem", "actions"],
     "additionalProperties": False,
 }
 
@@ -73,16 +67,24 @@ def generate(db: Session, store: Store) -> StoreInsight:
     if not samples:
         raise NothingToAnalyze(f"Chưa có đánh giá tiêu cực nào trong {WINDOW_DAYS} ngày qua để phân tích")
 
-    data = {a: {"ten": ASPECT_VI.get(a, a), "so_danh_gia": counts[a], "danh_gia": texts} for a, texts in samples.items()}
-    prompt = (f"Quán: {json.dumps(store.name, ensure_ascii=False)}\n"
-              f"Đánh giá tiêu cực {WINDOW_DAYS} ngày qua, theo khía cạnh (JSON):\n{json.dumps(data, ensure_ascii=False)}")
-    out = llm.generate_json(SYSTEM, prompt, SCHEMA, effort="medium")
+    # một lần gọi cho mỗi khía cạnh: gộp chung thì model 3B bỏ sót khía cạnh và nói lẫn sang khía cạnh khác
+    aspects = []
+    for a, texts in samples.items():
+        prompt = "\n".join([
+            f"Quán: {json.dumps(store.name, ensure_ascii=False)}",
+            f"Khía cạnh: {ASPECT_VI.get(a, a)} ({ASPECT_SCOPE.get(a, a)})",
+            f"Đánh giá tiêu cực {WINDOW_DAYS} ngày qua có chê khía cạnh này (JSON):",
+            json.dumps(texts, ensure_ascii=False),
+        ])
+        out = llm.generate_json(SYSTEM, prompt, SCHEMA)
+        # số lượt chê lấy từ dữ liệu thật, không lấy từ AI
+        aspects.append({"aspect": a, "problem": out["problem"], "actions": out["actions"], "mentions": counts[a]})
+    aspects.sort(key=lambda x: x["mentions"], reverse=True)
+    top = aspects[0]
+    headline = f"Ưu tiên cải thiện {ASPECT_VI.get(top['aspect'], top['aspect']).lower()}: {top['problem']}"
 
-    # số lượt nhắc lấy từ dữ liệu thật, không lấy từ AI; bỏ khía cạnh AI tự thêm mà dữ liệu không có
-    aspects = sorted(({**x, "mentions": counts[x["aspect"]]} for x in out["aspects"] if x["aspect"] in counts),
-                     key=lambda x: x["mentions"], reverse=True)
     insight = db.get(StoreInsight, store.id) or StoreInsight(store_id=store.id)
-    insight.content = {"headline": out["headline"], "aspects": aspects,
+    insight.content = {"headline": headline, "aspects": aspects,
                        "window_days": WINDOW_DAYS, "negative_reviews": n_reviews}
     insight.generated_at = utcnow()
     db.add(insight)
