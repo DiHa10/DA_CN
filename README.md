@@ -115,6 +115,16 @@ Mở http://localhost:3000. Frontend gọi backend qua proxy `/api/backend/*` (�
 
 Thử form QR trên điện thoại: mở dashboard bằng địa chỉ mạng LAN (ví dụ `http://192.168.x.x:3000`), không dùng `localhost`, để mã QR trỏ đúng máy.
 
+## Tóm tắt AI, gợi ý trả lời, báo cáo tuần
+Đặt biến môi trường cho backend (không commit lên git):
+
+| Biến | Dùng cho |
+|---|---|
+| `ANTHROPIC_API_KEY` | Tóm tắt "Gợi ý cải thiện" ở Tổng quan và nút "Gợi ý bằng AI" khi trả lời review (model `claude-opus-5-5`, tính phí theo lượt gọi). Thiếu thì các nút AI báo "Chưa cấu hình AI", phần còn lại vẫn chạy. |
+| `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_USER`, `SMTP_PASSWORD` | Gửi báo cáo tuần. Với Gmail, `SMTP_PASSWORD` là **App Password** (Google Account → Bảo mật → Mật khẩu ứng dụng), không phải mật khẩu đăng nhập. Thiếu `SMTP_HOST` thì email được lưu thành file trong `backend/outbox/`. |
+
+Báo cáo tuần bật trong trang Cửa hàng; backend tự gửi lúc 8:00 sáng thứ Hai (giờ VN). Nội dung review được gửi tới Anthropic để AI xử lý.
+
 ## Chạy production (demo công khai)
 - Đặt `APP_ENV=production` cho backend. Backend sẽ không khởi động nếu thiếu `SECRET_KEY` hoặc khóa ngắn hơn 32 ký tự, và tắt `/docs`. Tạo khóa:
 ```bash

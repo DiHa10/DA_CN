@@ -7,18 +7,17 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import Review, ReviewAnalysis, ReviewAspect, Store
-from ..schemas import ReviewIn, ReviewOut
+from ..labels import ASPECT_VI, SENTIMENT_VI, SOURCE_VI
+from ..models import Review, ReviewAnalysis, ReviewAspect, Store, utcnow
+from ..ratelimit import SlidingWindow
+from ..schemas import ReplyDraft, ReplyIn, ReviewIn, ReviewOut
 from ..security import get_owned_store
+from ..services import reply
 from ..services.analysis import analyze_reviews
+from ..services.llm import LLMError
 from ..timeutil import vn_date, vn_day_start
 
 router = APIRouter(prefix="/stores/{store_id}/reviews", tags=["reviews"])
-
-SENTIMENT_VI = {"positive": "Tích cực", "neutral": "Trung lập", "negative": "Tiêu cực"}
-SOURCE_VI = {"google": "Google Maps", "qr": "QR tại quán", "csv": "Import file", "manual": "Nhập tay"}
-ASPECT_VI = {"food": "Món ăn", "drink": "Đồ uống", "service": "Phục vụ", "price": "Giá cả",
-             "ambience": "Không gian", "location": "Vị trí"}
 
 MAX_IMPORT_ROWS = 10_000
 MAX_IMPORT_BYTES = 5 * 1024 * 1024
@@ -31,6 +30,7 @@ def filtered_reviews(
     aspect: str | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
+    replied: bool | None = None,
 ):
     """Bộ lọc dùng chung cho danh sách và file Excel, để file xuất ra khớp đúng những gì đang xem."""
     q = select(Review).where(Review.store_id == store.id)
@@ -44,6 +44,8 @@ def filtered_reviews(
         q = q.where(Review.created_at >= vn_day_start(date_from))
     if date_to:
         q = q.where(Review.created_at < vn_day_start(date_to + timedelta(days=1)))
+    if replied is not None:
+        q = q.where(Review.reply_text.is_not(None) if replied else Review.reply_text.is_(None))
     return q.order_by(Review.created_at.desc(), Review.id.desc())
 
 
@@ -135,6 +137,36 @@ async def import_reviews(file: UploadFile, tasks: BackgroundTasks, store: Store 
     db.commit()
     tasks.add_task(analyze_reviews, [r.id for r in reviews])
     return {"imported": len(reviews), "skipped": skipped}
+
+
+# mỗi gợi ý là một lần gọi AI có tính phí
+draft_limit = SlidingWindow(60, 3600, "Đã gợi ý quá nhiều câu trả lời trong giờ này, thử lại sau")
+
+
+def _owned_review(review_id: int, store: Store, db: Session) -> Review:
+    review = db.get(Review, review_id)
+    if not review or review.store_id != store.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy đánh giá")
+    return review
+
+
+@router.post("/{review_id}/reply-draft", response_model=ReplyDraft)
+def reply_draft(review_id: int, store: Store = Depends(get_owned_store), db: Session = Depends(get_db)):
+    review = _owned_review(review_id, store, db)
+    draft_limit.hit(str(store.id))
+    try:
+        return ReplyDraft(reply_text=reply.draft(store, review))
+    except LLMError as e:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(e))
+
+
+@router.put("/{review_id}/reply", response_model=ReviewOut)
+def save_reply(review_id: int, body: ReplyIn, store: Store = Depends(get_owned_store), db: Session = Depends(get_db)):
+    review = _owned_review(review_id, store, db)
+    text = body.reply_text.strip()
+    review.reply_text, review.replied_at = (text, utcnow()) if text else (None, None)
+    db.commit()
+    return review
 
 
 def _excel_safe(text: str) -> str:

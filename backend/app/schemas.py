@@ -23,6 +23,31 @@ class StoreIn(BaseModel):
 class StoreOut(StoreIn):
     model_config = ConfigDict(from_attributes=True)
     id: int
+    report_email: str | None
+    weekly_report: bool
+
+
+class ReportSettings(BaseModel):
+    report_email: str | None = Field(default=None, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$", max_length=255)
+    weekly_report: bool
+
+
+class ReplyIn(BaseModel):
+    reply_text: str = Field(max_length=2000)  # chuỗi rỗng = xóa câu trả lời
+
+
+class ReplyDraft(BaseModel):
+    reply_text: str
+
+
+class InsightOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    generated_at: datetime
+    content: dict
+
+    @field_serializer("generated_at")
+    def _utc(self, v: datetime) -> datetime:
+        return as_utc(v)
 
 
 class PublicStore(BaseModel):
@@ -57,9 +82,11 @@ class ReviewOut(BaseModel):
     content: str
     rating: int | None
     created_at: datetime
+    reply_text: str | None
+    replied_at: datetime | None
     analysis: AnalysisOut | None
     aspects: list[AspectOut]
 
-    @field_serializer("created_at")
-    def _utc(self, v: datetime) -> datetime:
-        return as_utc(v)  # luôn kèm múi giờ để trình duyệt đổi đúng sang giờ địa phương
+    @field_serializer("created_at", "replied_at")
+    def _utc(self, v: datetime | None) -> datetime | None:
+        return as_utc(v) if v else None  # luôn kèm múi giờ để trình duyệt đổi đúng sang giờ địa phương

@@ -6,9 +6,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .migrate import migrate
-from .routers import auth, dashboard, public, reviews, stores
+from .routers import auth, dashboard, insights, public, reviews, stores
 from .security import PRODUCTION
 from .services import nlp
+from .services import weekly_report
 from .services.analysis import analyze_pending
 
 
@@ -17,6 +18,7 @@ async def lifespan(app: FastAPI):
     migrate()  # Alembic upgrade head; đổi cấu trúc bảng thì thêm migration trong alembic/versions
     nlp.load_model()  # nạp PhoBERT trước request đầu tiên (nếu đặt NLP_MODEL_DIR)
     threading.Thread(target=analyze_pending, daemon=True).start()  # chạy nền, không chặn server mở cổng
+    weekly_report.start_scheduler()
     yield
 
 
@@ -34,7 +36,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-for r in (auth, stores, reviews, public, dashboard):
+for r in (auth, stores, reviews, public, dashboard, insights):
     app.include_router(r.router)
 
 

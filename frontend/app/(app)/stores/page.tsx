@@ -1,5 +1,6 @@
 "use client";
 
+import { ReportSettings } from "@/components/report-settings";
 import { SectionRow } from "@/components/section-row";
 import { useStores } from "@/components/store-context";
 import { api, json, type Store } from "@/lib/api";
@@ -84,6 +85,7 @@ export default function StoresPage() {
                 </button>
               </div>
             </div>
+            <ReportSettings store={s} onSaved={reload} />
           </SectionRow>
         );
       })}

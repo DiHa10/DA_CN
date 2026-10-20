@@ -1,6 +1,6 @@
 export type Sentiment = "positive" | "neutral" | "negative";
 
-export type Store = { id: number; name: string; slug: string };
+export type Store = { id: number; name: string; slug: string; report_email: string | null; weekly_report: boolean };
 
 export type Review = {
   id: number;
@@ -9,6 +9,8 @@ export type Review = {
   content: string;
   rating: number | null;
   created_at: string;
+  reply_text: string | null;
+  replied_at: string | null;
   analysis: { sentiment: Sentiment; confidence: number } | null;
   aspects: { aspect: string; sentiment: Sentiment }[];
 };
@@ -28,6 +30,16 @@ export type Summary = {
   avg_rating: number | null;
   trend: ({ week_start: string } & Counts)[];
   aspects: AspectRow[];
+};
+
+export type Insight = {
+  generated_at: string;
+  content: {
+    headline: string;
+    window_days: number;
+    negative_reviews: number;
+    aspects: { aspect: string; problem: string; actions: string[]; mentions: number }[];
+  };
 };
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {

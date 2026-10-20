@@ -1,5 +1,6 @@
 "use client";
 
+import { InsightsPanel } from "@/components/insights-panel";
 import { useNegativeAlert } from "@/components/negative-alert";
 import { useStores } from "@/components/store-context";
 import { api, type AspectRow, type Review, type Summary } from "@/lib/api";
@@ -68,6 +69,7 @@ export default function DashboardPage() {
           <div className="min-w-0 space-y-6">
             <Kpis data={data} />
             <AspectBoard aspects={aspects} />
+            {store && <InsightsPanel storeId={store.id} />}
             <Trend data={data} />
           </div>
           <RecentNegative reviews={recent} />

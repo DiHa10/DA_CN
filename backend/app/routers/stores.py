@@ -1,11 +1,15 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..models import Store, User
-from ..schemas import StoreIn, StoreOut
+from ..ratelimit import SlidingWindow
+from ..schemas import ReportSettings, StoreIn, StoreOut
 from ..security import get_current_user, get_owned_store
+from ..services import weekly_report
 
 router = APIRouter(prefix="/stores", tags=["stores"])
 
@@ -34,3 +38,27 @@ def get_store(store: Store = Depends(get_owned_store)):
 def delete_store(store: Store = Depends(get_owned_store), db: Session = Depends(get_db)):
     db.delete(store)
     db.commit()
+
+
+@router.put("/{store_id}/report-settings", response_model=StoreOut)
+def update_report_settings(body: ReportSettings, store: Store = Depends(get_owned_store), db: Session = Depends(get_db)):
+    if body.weekly_report and not body.report_email:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Nhập email nhận báo cáo trước khi bật")
+    store.report_email, store.weekly_report = body.report_email, body.weekly_report
+    db.commit()
+    return store
+
+
+test_limit = SlidingWindow(5, 3600, "Đã gửi thử nhiều lần trong giờ này, thử lại sau")
+
+
+@router.post("/{store_id}/report/test")
+def send_test_report(store: Store = Depends(get_owned_store), db: Session = Depends(get_db)):
+    """Gửi ngay báo cáo của tuần trước; không đánh dấu đã gửi, lịch gửi thứ Hai vẫn chạy bình thường."""
+    if not store.report_email:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Chưa có email nhận báo cáo")
+    test_limit.hit(str(store.id))
+    try:
+        return {"message": weekly_report.deliver(weekly_report.build(db, store, datetime.now(timezone.utc)), store.slug)}
+    except weekly_report.DeliveryError as e:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(e))

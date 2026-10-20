@@ -1,6 +1,7 @@
 "use client";
 
 import { useNegativeAlert } from "@/components/negative-alert";
+import { ReplyBox } from "@/components/reply-box";
 import { AspectChip, SentimentBadge } from "@/components/sentiment-badge";
 import { useStores } from "@/components/store-context";
 import { api, type Review } from "@/lib/api";
@@ -11,7 +12,7 @@ import { Suspense, useEffect, useState } from "react";
 
 const PAGE = 50;
 const TABS = [["", "Tất cả"], ["negative", SENTIMENT_LABEL.negative], ["neutral", SENTIMENT_LABEL.neutral], ["positive", SENTIMENT_LABEL.positive]];
-const FILTERS = ["aspect", "source", "date_from", "date_to"] as const;
+const FILTERS = ["aspect", "source", "replied", "date_from", "date_to"] as const;
 
 export default function ReviewsPage() {
   return (
@@ -108,6 +109,7 @@ function Reviews() {
       <div className="mt-5 flex flex-wrap items-center gap-2">
         {select("aspect", "Khía cạnh", ASPECT_LABEL)}
         {select("source", "Nguồn", SOURCE_LABEL)}
+        {select("replied", "Phản hồi", { false: "Chưa trả lời", true: "Đã trả lời" })}
         <label htmlFor="date_from" className="text-sm text-muted">Từ</label>
         <input id="date_from" type="date" className="control" value={params.get("date_from") ?? ""} onChange={(e) => setFilter("date_from", e.target.value)} />
         <label htmlFor="date_to" className="text-sm text-muted">đến</label>
@@ -153,6 +155,8 @@ function Reviews() {
                       {r.aspects.map((a) => <AspectChip key={a.aspect} label={ASPECT_LABEL[a.aspect] ?? a.aspect} sentiment={a.sentiment} />)}
                     </div>
                   )}
+                  <ReplyBox storeId={store!.id} review={r}
+                    onSaved={(saved) => setReviews((list) => list && list.map((x) => (x.id === saved.id ? saved : x)))} />
                 </td>
                 <td className="text-xs text-muted md:py-3 md:pr-4 md:text-sm">{SOURCE_LABEL[r.source] ?? r.source}</td>
                 <td className="num text-xs text-muted md:py-3 md:pr-4 md:text-right md:text-sm md:text-ink">

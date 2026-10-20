@@ -8,3 +8,4 @@ ml/models/
 .taste-skill/*/
 .claude/
 *.zip
+backend/outbox/

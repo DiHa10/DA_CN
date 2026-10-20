@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from app.db import Base, engine  # noqa: E402
 from app.main import app  # noqa: E402
-from app.routers import auth, public  # noqa: E402
+from app.routers import auth, insights, public, reviews, stores  # noqa: E402
 
 
 @pytest.fixture
@@ -20,7 +20,8 @@ def client():
     Base.metadata.drop_all(engine)
     with engine.begin() as c:
         c.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")
-    for limiter in (public.per_ip, public.per_store, auth.failed_logins):
+    for limiter in (public.per_ip, public.per_store, auth.failed_logins, insights.per_store,
+                    reviews.draft_limit, stores.test_limit):
         limiter._hits.clear()
     with TestClient(app) as c:
         yield c
