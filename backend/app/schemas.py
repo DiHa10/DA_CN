@@ -1,6 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
+
+from .timeutil import as_utc
 
 
 class UserCreate(BaseModel):
@@ -57,3 +59,7 @@ class ReviewOut(BaseModel):
     created_at: datetime
     analysis: AnalysisOut | None
     aspects: list[AspectOut]
+
+    @field_serializer("created_at")
+    def _utc(self, v: datetime) -> datetime:
+        return as_utc(v)  # luôn kèm múi giờ để trình duyệt đổi đúng sang giờ địa phương

@@ -82,3 +82,59 @@ def test_import_rejects_missing_column(client):
     store = make_store(client, h)
     r = client.post(f"/stores/{store['id']}/reviews/import", files={"file": ("r.csv", b"text\nabc\n")}, headers=h)
     assert r.status_code == 400
+
+
+def test_dates_follow_vietnam_time(client):
+    h = auth_headers(client)
+    store = make_store(client, h)
+    base = f"/stores/{store['id']}/reviews"
+    # 23:30 UTC ngày 04/10 = 06:30 sáng 05/10 giờ Việt Nam
+    csv = "content,created_at\nPhở ngon,2026-10-04T23:30:00Z\n".encode()
+    client.post(f"{base}/import", files={"file": ("r.csv", csv)}, headers=h)
+
+    rows = client.get(base, params={"date_from": "2026-10-05", "date_to": "2026-10-05"}, headers=h).json()
+    assert len(rows) == 1
+    from datetime import datetime, timezone
+
+    created = datetime.fromisoformat(rows[0]["created_at"].replace("Z", "+00:00"))
+    assert created.tzinfo is not None  # có múi giờ, trình duyệt đổi đúng giờ (Postgres trả +07:00, SQLite +00:00)
+    assert created == datetime(2026, 10, 4, 23, 30, tzinfo=timezone.utc)
+    assert client.get(base, params={"date_to": "2026-10-04"}, headers=h).json() == []
+
+    import io
+
+    import openpyxl
+    ws = openpyxl.load_workbook(io.BytesIO(client.get(f"{base}/export.xlsx", headers=h).content)).active
+    assert ws.cell(2, 1).value == "2026-10-05"
+    # 05/10/2026 là thứ Hai: review thuộc tuần bắt đầu 05/10, không phải tuần trước
+    assert client.get(f"/stores/{store['id']}/dashboard", headers=h).json()["trend"][0]["week_start"] == "2026-10-05"
+
+
+def test_pending_reviews_are_analyzed_on_startup(client):
+    from app.db import SessionLocal
+    from app.models import Review
+    from app.services.analysis import analyze_pending
+
+    h = auth_headers(client)
+    store = make_store(client, h)
+    with SessionLocal() as db:  # review đã lưu nhưng chưa phân tích, như khi server tắt giữa chừng
+        db.add(Review(store_id=store["id"], source="csv", content="Nhân viên thái độ khó chịu"))
+        db.commit()
+    assert analyze_pending() == 1
+    assert analyze_pending() == 0
+    review = client.get(f"/stores/{store['id']}/reviews", headers=h).json()[0]
+    assert review["analysis"]["sentiment"] == "negative"
+
+
+def test_rate_limiter_forgets_expired_keys(monkeypatch):
+    import itertools
+
+    from app import ratelimit
+    from app.ratelimit import SlidingWindow
+
+    clock = itertools.count()  # đồng hồ giả, mỗi lần gọi tăng 1 giây
+    monkeypatch.setattr(ratelimit.time, "monotonic", lambda: next(clock))
+    limiter = SlidingWindow(5, 60, "x")
+    for i in range(SlidingWindow.SWEEP_EVERY * 3):
+        limiter.hit(f"ip-gia-{i}")  # mỗi lượt một IP giả, không bao giờ quay lại
+    assert len(limiter._hits) < SlidingWindow.SWEEP_EVERY  # không giữ cả 3072 khóa

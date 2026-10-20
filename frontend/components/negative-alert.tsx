@@ -38,9 +38,11 @@ export function NegativeAlertProvider({ children }: { children: React.ReactNode 
     const rows = await api<Review[]>(`/stores/${store.id}/reviews?sentiment=negative&limit=50`).catch(() => null);
     if (!rows) return;
     let mark = readSeen(store.id);
-    if (mark === null) {
-      // lần đầu mở: không báo toàn bộ lịch sử là "mới"
-      mark = Math.max(0, ...rows.map((r) => r.id));
+    const top = Math.max(0, ...rows.map((r) => r.id));
+    // lần đầu mở: không báo toàn bộ lịch sử là "mới";
+    // mốc lớn hơn mọi id hiện có = database đã bị reset (id đánh lại từ 1), mốc cũ không còn ý nghĩa
+    if (mark === null || top < mark) {
+      mark = top;
       writeSeen(store.id, mark);
     }
     setSeen(mark);

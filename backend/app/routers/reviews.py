@@ -11,6 +11,7 @@ from ..models import Review, ReviewAnalysis, ReviewAspect, Store
 from ..schemas import ReviewIn, ReviewOut
 from ..security import get_owned_store
 from ..services.analysis import analyze_reviews
+from ..timeutil import vn_date, vn_day_start
 
 router = APIRouter(prefix="/stores/{store_id}/reviews", tags=["reviews"])
 
@@ -40,9 +41,9 @@ def filtered_reviews(
     if aspect:
         q = q.where(Review.id.in_(select(ReviewAspect.review_id).where(ReviewAspect.aspect == aspect)))
     if date_from:
-        q = q.where(Review.created_at >= datetime.combine(date_from, datetime.min.time(), timezone.utc))
+        q = q.where(Review.created_at >= vn_day_start(date_from))
     if date_to:
-        q = q.where(Review.created_at < datetime.combine(date_to + timedelta(days=1), datetime.min.time(), timezone.utc))
+        q = q.where(Review.created_at < vn_day_start(date_to + timedelta(days=1)))
     return q.order_by(Review.created_at.desc(), Review.id.desc())
 
 
@@ -59,7 +60,7 @@ def export_reviews(q=Depends(filtered_reviews), store: Store = Depends(get_owned
     for r in db.scalars(q):
         aspects = {a.aspect: SENTIMENT_VI[a.sentiment] for a in r.aspects}
         rows.append({
-            "Ngày": r.created_at.strftime("%Y-%m-%d"),
+            "Ngày": vn_date(r.created_at).isoformat(),
             "Nguồn": SOURCE_VI.get(r.source, r.source),
             "Khách": _excel_safe(r.author or ""),
             "Số sao": r.rating,

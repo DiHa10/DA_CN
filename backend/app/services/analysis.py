@@ -7,6 +7,15 @@ from .nlp import analyze_batch
 BATCH_SIZE = 32
 
 
+def analyze_pending() -> int:
+    """Phân tích các review chưa có kết quả: phần bị bỏ dở khi server restart giữa chừng hoặc model lỗi."""
+    with SessionLocal() as db:
+        ids = list(db.scalars(select(Review.id).outerjoin(ReviewAnalysis).where(ReviewAnalysis.review_id.is_(None))))
+    if ids:
+        analyze_reviews(ids)
+    return len(ids)
+
+
 def analyze_reviews(review_ids: list[int]) -> None:
     """Chạy trong BackgroundTasks: phân tích và lưu kết quả, ghi đè kết quả cũ."""
     with SessionLocal() as db:

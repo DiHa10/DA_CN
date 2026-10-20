@@ -28,7 +28,6 @@ export type Summary = {
   avg_rating: number | null;
   trend: ({ week_start: string } & Counts)[];
   aspects: AspectRow[];
-  improve: { aspect: string; negative_rate: number }[];
 };
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..models import Review, Store
 from ..security import get_owned_store
+from ..timeutil import as_utc, vn_date
 
 router = APIRouter(prefix="/stores/{store_id}/dashboard", tags=["dashboard"])
 
@@ -25,12 +26,13 @@ def summary(store: Store = Depends(get_owned_store), db: Session = Depends(get_d
     aspects = defaultdict(Counter)
     latest_negative = {}  # aspect -> nội dung review tiêu cực mới nhất, để chủ quán đọc lời khách
     for r in sorted(analyzed, key=lambda r: r.created_at, reverse=True):
-        monday = (r.created_at - timedelta(days=r.created_at.weekday())).date().isoformat()
+        day = vn_date(r.created_at)  # tuần bắt đầu thứ Hai theo giờ VN
+        monday = (day - timedelta(days=day.weekday())).isoformat()
         trend[monday][r.analysis.sentiment] += 1
         for a in r.aspects:
             aspects[a.aspect][a.sentiment] += 1
             if a.sentiment == "negative":
-                latest_negative.setdefault(a.aspect, {"content": r.content, "created_at": r.created_at})
+                latest_negative.setdefault(a.aspect, {"content": r.content, "created_at": as_utc(r.created_at)})
 
     def row(counter):
         return {s: counter[s] for s in SENTIMENTS}
@@ -38,9 +40,6 @@ def summary(store: Store = Depends(get_owned_store), db: Session = Depends(get_d
     ratings = [r.rating for r in reviews if r.rating]
     aspect_rows = [{"aspect": a, **row(c), "total": sum(c.values()), "latest_negative": latest_negative.get(a)}
                    for a, c in aspects.items()]
-    # "cần cải thiện": khía cạnh có tỉ lệ tiêu cực cao nhất, bỏ khía cạnh quá ít dữ liệu
-    improve = sorted((x for x in aspect_rows if x["negative"] and x["total"] >= 3),
-                     key=lambda x: x["negative"] / x["total"], reverse=True)[:3]
     return {
         "total": len(reviews),
         "analyzed": len(analyzed),
@@ -49,5 +48,4 @@ def summary(store: Store = Depends(get_owned_store), db: Session = Depends(get_d
         "avg_rating": round(sum(ratings) / len(ratings), 2) if ratings else None,
         "trend": [{"week_start": w, **row(c)} for w, c in sorted(trend.items())],
         "aspects": sorted(aspect_rows, key=lambda x: x["total"], reverse=True),
-        "improve": [{"aspect": x["aspect"], "negative_rate": round(x["negative"] / x["total"], 3)} for x in improve],
     }
