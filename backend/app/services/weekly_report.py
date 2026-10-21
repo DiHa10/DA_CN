@@ -98,12 +98,12 @@ def build(db: Session, store: Store, now: datetime) -> EmailMessage:
             + "".join(f"<p style='margin:0 0 8px'>{e(f)}</p>" for f in facts)
             + ("<p style='margin:16px 0 8px'><b>Một số góp ý tiêu cực</b></p><ul>"
                + "".join(f"<li style='margin-bottom:4px'>{e(q)}</li>" for q in quotes) + "</ul>" if quotes else "")
-            + "<p style='color:#5d5f60;font-size:12px;margin-top:24px'>Email tự động từ Lời Khách. "
+            + "<p style='color:#5d5f60;font-size:12px;margin-top:24px'>Email tự động từ Quán Nghe. "
               "Tắt báo cáo trong trang Cửa hàng.</p></div>")
 
     msg = EmailMessage()
-    msg["Subject"] = f"[Lời Khách] Báo cáo tuần {period}: {name}"
-    msg["From"] = os.getenv("SMTP_FROM") or os.getenv("SMTP_USER") or "loi-khach@localhost"
+    msg["Subject"] = f"[Quán Nghe] Báo cáo tuần {period}: {name}"
+    msg["From"] = os.getenv("SMTP_FROM") or os.getenv("SMTP_USER") or "quan-nghe@localhost"
     msg["To"] = store.report_email
     msg.set_content(text)
     msg.add_alternative(page, subtype="html")

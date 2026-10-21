@@ -1,5 +1,5 @@
-// Logo "Lời Khách": cặp ngoặc kép, tượng trưng cho lời khách hàng
-export const PRODUCT_NAME = "Lời Khách";
+// Logo "Quán Nghe": cặp ngoặc kép, lời khách được quán lắng nghe
+export const PRODUCT_NAME = "Quán Nghe";
 
 export function Mark({ className = "size-5" }: { className?: string }) {
   return (

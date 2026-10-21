@@ -16,7 +16,7 @@ const hand = Patrick_Hand({
 });
 
 export const metadata: Metadata = {
-  title: "Lời Khách — phân tích phản hồi khách hàng",
+  title: "Quán Nghe — phân tích phản hồi khách hàng",
   description: "Tự động phân tích cảm xúc và khía cạnh trong đánh giá của khách hàng",
 };
 

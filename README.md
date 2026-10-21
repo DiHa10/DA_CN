@@ -1,5 +1,7 @@
 # Hệ thống tự động đánh giá và phân tích phản hồi khách hàng
 
+**Quán Nghe**: web giúp chủ quán ăn gom góp ý của khách, tự phân tích khen/chê theo từng khía cạnh và gợi ý điều cần cải thiện.
+
 - `backend/`: FastAPI + SQLAlchemy, phân tích cảm xúc và ABSA (`app/services/nlp.py`)
 - `frontend/`: Next.js
 - `ml/`: train và đánh giá model ABSA (từ điển / TF-IDF / PhoBERT) trên VLSP 2018 nhà hàng
