@@ -27,7 +27,7 @@ export default function DashboardPage() {
     setError("");
     Promise.all([
       api<Summary>(`/stores/${store.id}/dashboard`),
-      api<Review[]>(`/stores/${store.id}/reviews?sentiment=negative&limit=5`),
+      api<Review[]>(`/stores/${store.id}/reviews?sentiment=negative&limit=3`),
     ]).then(([s, r]) => { setData(s); setRecent(r); }, (e) => setError(e.message));
   }, [store]);
   useEffect(load, [load]);
@@ -69,10 +69,12 @@ export default function DashboardPage() {
           <div className="min-w-0 space-y-6">
             <Kpis data={data} />
             <AspectBoard aspects={aspects} />
-            {store && <InsightsPanel storeId={store.id} />}
             <Trend data={data} />
           </div>
-          <RecentNegative reviews={recent} />
+          <div className="space-y-6">
+            {store && <InsightsPanel storeId={store.id} />}
+            <RecentNegative reviews={recent} />
+          </div>
         </div>
       )}
     </div>

@@ -6,7 +6,7 @@ import { useStores } from "@/components/store-context";
 import { api, json, type Store } from "@/lib/api";
 import { ExternalLink } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 // "Phở Ngon Quận 1" -> "pho-ngon-quan-1"
 const slugify = (s: string) =>
@@ -66,7 +66,8 @@ export default function StoresPage() {
       {stores?.map((s) => {
         const url = `${origin}/r/${s.slug}`;
         return (
-          <SectionRow key={s.id} title={s.name} description={<>
+          <Fragment key={s.id}>
+          <SectionRow title={s.name} description={<>
             <p>In mã QR đặt ở bàn hoặc quầy thu ngân. Khách quét, chấm sao và viết góp ý; hệ thống tự phân tích.</p>
             <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 break-all font-medium text-accent hover:underline">
               {url} <ExternalLink aria-hidden strokeWidth={1.5} className="size-3.5 flex-none" />
@@ -85,8 +86,14 @@ export default function StoresPage() {
                 </button>
               </div>
             </div>
+          </SectionRow>
+          <SectionRow title={stores.length > 1 ? `Báo cáo tuần · ${s.name}` : "Báo cáo tuần qua email"} description={<>
+            <p>Gửi lúc 8:00 sáng thứ Hai, tổng kết tuần trước: số đánh giá mới, tỉ lệ tiêu cực so với tuần trước đó, khía cạnh đang bị chê tăng và vài góp ý tiêu cực tiêu biểu.</p>
+            <p>Có gợi ý cải thiện thì email kèm câu ưu tiên số một.</p>
+          </>}>
             <ReportSettings store={s} onSaved={reload} />
           </SectionRow>
+          </Fragment>
         );
       })}
 

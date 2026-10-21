@@ -4,6 +4,8 @@ import { api, type Insight } from "@/lib/api";
 import { ASPECT_LABEL } from "@/lib/labels";
 import { useCallback, useEffect, useState } from "react";
 
+const SHOWN = 3; // cột phải dashboard: 3 khía cạnh nhiều lượt chê nhất, phần còn lại mở khi cần
+
 const formatTime = (iso: string) =>
   new Date(iso).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric" });
 
@@ -12,6 +14,7 @@ export function InsightsPanel({ storeId }: { storeId: number }) {
   const [insight, setInsight] = useState<Insight | null | undefined>(undefined); // undefined = đang tải
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     setInsight(undefined);
@@ -32,49 +35,56 @@ export function InsightsPanel({ storeId }: { storeId: number }) {
 
   const c = insight?.content;
   return (
-    <section className="panel" aria-busy={busy}>
-      <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-4">
-        <div>
-          <h2 className="text-base font-semibold">Gợi ý cải thiện</h2>
-          <p className="text-xs text-muted">
-            {insight
-              ? `AI đọc ${c!.negative_reviews} đánh giá tiêu cực trong ${c!.window_days} ngày · cập nhật ${formatTime(insight.generated_at)}`
-              : "AI đọc các đánh giá tiêu cực 30 ngày qua và đề xuất việc nên làm"}
-          </p>
-        </div>
-        <button className="btn" onClick={regenerate} disabled={busy}>
-          {busy ? "AI đang đọc đánh giá…" : insight ? "Cập nhật" : "Tạo gợi ý"}
+    // nằm ở cột phải dashboard: tiêu đề ngoài khung như "Tiêu cực gần đây"
+    <section aria-busy={busy}>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <h2 className="text-base font-semibold">Gợi ý cải thiện</h2>
+        <button className="cursor-pointer text-sm font-medium text-accent hover:underline disabled:cursor-wait disabled:text-muted disabled:no-underline"
+          onClick={regenerate} disabled={busy}>
+          {busy ? "AI đang đọc…" : insight ? "Cập nhật" : "Tạo gợi ý"}
         </button>
       </div>
+      <div className="panel">
+        <p className="border-b border-rule px-4 py-2.5 text-xs text-muted">
+          {insight
+            ? `AI đọc ${c!.negative_reviews} đánh giá tiêu cực ${c!.window_days} ngày qua · ${formatTime(insight.generated_at)}`
+            : `AI đọc đánh giá tiêu cực 30 ngày qua và đề xuất việc nên làm, mất khoảng nửa phút`}
+        </p>
+        {error && <p role="alert" className="px-4 pt-3 text-sm text-negative">{error}</p>}
+        {insight === undefined && !error && <p className="px-4 py-3 text-sm text-muted">Đang tải…</p>}
+        {insight === null && !error && <p className="px-4 py-3 text-sm text-muted">Chưa có gợi ý. Bấm “Tạo gợi ý”.</p>}
 
-      {error && <p role="alert" className="px-5 pt-3 text-sm text-negative">{error}</p>}
-      {insight === undefined && !error && <p className="px-5 py-4 text-sm text-muted">Đang tải…</p>}
-      {insight === null && !error && (
-        <p className="px-5 py-4 text-sm text-muted">Chưa có gợi ý. Bấm “Tạo gợi ý” để AI chạy trên máy đọc đánh giá (mất khoảng nửa phút).</p>
-      )}
-
-      {c && (
-        <div className="px-5 pt-3 pb-4">
-          <p className="font-medium">{c.headline}</p>
-          <ul className="mt-3">
-            {c.aspects.map((a) => (
-              <li key={a.aspect} className="border-t border-rule py-3 first:border-t-0 sm:grid sm:grid-cols-[132px_minmax(0,1fr)] sm:gap-4">
-                <p className="font-medium">
-                  {ASPECT_LABEL[a.aspect] ?? a.aspect} <span className="num font-normal text-muted">{a.mentions} lượt chê</span>
-                </p>
-                <div>
-                  <p className="text-muted">{a.problem}</p>
-                  {a.actions.length > 0 && (
-                    <ul className="mt-1.5 list-disc space-y-0.5 pl-5">
-                      {a.actions.map((x) => <li key={x}>{x}</li>)}
-                    </ul>
+        {c && (
+          <ul>
+            {(showAll ? c.aspects : c.aspects.slice(0, SHOWN)).map((a, i) => (
+              <li key={a.aspect} className="border-t border-rule px-4 py-3 first:border-t-0">
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="font-medium">{ASPECT_LABEL[a.aspect] ?? a.aspect}</span>
+                  <span className="num text-xs whitespace-nowrap text-muted">{a.mentions} lượt chê</span>
+                  {i === 0 && (
+                    <span className="ml-auto flex-none rounded bg-[#fffbeb] px-1.5 text-xs font-medium whitespace-nowrap text-[#92400e]">
+                      Ưu tiên
+                    </span>
                   )}
-                </div>
+                </p>
+                <p className="mt-1">{a.problem}</p>
+                {a.actions.length > 0 && (
+                  <ul className="mt-1.5 list-disc space-y-0.5 pl-5 text-[13px] text-muted">
+                    {a.actions.map((x) => <li key={x}>{x}</li>)}
+                  </ul>
+                )}
               </li>
             ))}
           </ul>
-        </div>
-      )}
+        )}
+        {c && c.aspects.length > SHOWN && (
+          <div className="border-t border-rule p-3">
+            <button className="btn w-full" onClick={() => setShowAll(!showAll)} aria-expanded={showAll}>
+              {showAll ? "Thu gọn" : `Xem thêm ${c.aspects.length - SHOWN} khía cạnh`}
+            </button>
+          </div>
+        )}
+      </div>
     </section>
   );
 }

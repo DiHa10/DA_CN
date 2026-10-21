@@ -144,7 +144,7 @@ function Reviews() {
           </thead>
           <tbody>
             {reviews.map((r) => (
-              <tr key={r.id} className="flex flex-wrap items-center gap-x-3 border-t border-rule py-3 md:table-row">
+              <tr key={r.id} className="flex flex-wrap items-center gap-x-3 border-t border-rule py-3 md:table-row md:[&>td]:align-top">
                 <td className="w-full md:w-auto md:py-3 md:pr-4">
                   <p>
                     {shownNew.has(r.id) && <span className="mr-2 rounded bg-[#ffedea] px-1.5 text-xs font-medium text-[#831c1e]">Mới</span>}

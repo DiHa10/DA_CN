@@ -38,8 +38,7 @@ export function ReportSettings({ store, onSaved }: { store: Store; onSaved: () =
 
   const id = `report-email-${store.id}`;
   return (
-    <form onSubmit={save} className="mt-5 w-full space-y-3 border-t border-border pt-4">
-      <p className="font-medium">Báo cáo tuần qua email</p>
+    <form onSubmit={save} className="space-y-4">
       <div>
         <label htmlFor={id} className="label">Email nhận báo cáo</label>
         <input id={id} type="email" maxLength={255} className="input" value={email} onChange={(e) => setEmail(e.target.value)} />
