@@ -11,7 +11,7 @@ from ..labels import ASPECT_VI, SENTIMENT_VI, SOURCE_VI
 from ..models import Review, ReviewAnalysis, ReviewAspect, Store, utcnow
 from ..ratelimit import SlidingWindow
 from ..schemas import ReplyDraft, ReplyIn, ReviewIn, ReviewOut
-from ..security import get_owned_store
+from ..security import manager_store, staff_store
 from ..services import reply
 from ..services.analysis import analyze_reviews
 from ..services.llm import LLMError
@@ -24,7 +24,7 @@ MAX_IMPORT_BYTES = 5 * 1024 * 1024
 
 
 def filtered_reviews(
-    store: Store = Depends(get_owned_store),
+    store: Store = Depends(staff_store),
     source: str | None = None,
     sentiment: str | None = None,
     aspect: str | None = None,
@@ -56,7 +56,7 @@ def list_reviews(q=Depends(filtered_reviews), db: Session = Depends(get_db),
 
 
 @router.get("/export.xlsx")
-def export_reviews(q=Depends(filtered_reviews), store: Store = Depends(get_owned_store),
+def export_reviews(q=Depends(filtered_reviews), store: Store = Depends(manager_store),
                    db: Session = Depends(get_db)):
     rows = []
     for r in db.scalars(q):
@@ -82,7 +82,7 @@ def export_reviews(q=Depends(filtered_reviews), store: Store = Depends(get_owned
 
 
 @router.post("", response_model=ReviewOut, status_code=201)
-def create_review(body: ReviewIn, tasks: BackgroundTasks, store: Store = Depends(get_owned_store),
+def create_review(body: ReviewIn, tasks: BackgroundTasks, store: Store = Depends(manager_store),
                   db: Session = Depends(get_db)):
     review = Review(store_id=store.id, source="manual", **body.model_dump())
     db.add(review)
@@ -92,7 +92,7 @@ def create_review(body: ReviewIn, tasks: BackgroundTasks, store: Store = Depends
 
 
 @router.post("/import", status_code=201)
-async def import_reviews(file: UploadFile, tasks: BackgroundTasks, store: Store = Depends(get_owned_store),
+async def import_reviews(file: UploadFile, tasks: BackgroundTasks, store: Store = Depends(manager_store),
                          db: Session = Depends(get_db)):
     """Nhận CSV/XLSX có cột bắt buộc `content`; cột tùy chọn: rating, author, source, created_at, external_id."""
     raw = await file.read(MAX_IMPORT_BYTES + 1)
@@ -151,7 +151,7 @@ def _owned_review(review_id: int, store: Store, db: Session) -> Review:
 
 
 @router.post("/{review_id}/reply-draft", response_model=ReplyDraft)
-def reply_draft(review_id: int, store: Store = Depends(get_owned_store), db: Session = Depends(get_db)):
+def reply_draft(review_id: int, store: Store = Depends(staff_store), db: Session = Depends(get_db)):
     review = _owned_review(review_id, store, db)
     draft_limit.check(str(store.id))  # chỉ tính lượt khi AI trả kết quả thành công
     db.commit()  # trả kết nối DB về pool trước khi chờ AI (vài giây tới cả phút)
@@ -164,7 +164,7 @@ def reply_draft(review_id: int, store: Store = Depends(get_owned_store), db: Ses
 
 
 @router.put("/{review_id}/reply", response_model=ReviewOut)
-def save_reply(review_id: int, body: ReplyIn, store: Store = Depends(get_owned_store), db: Session = Depends(get_db)):
+def save_reply(review_id: int, body: ReplyIn, store: Store = Depends(staff_store), db: Session = Depends(get_db)):
     review = _owned_review(review_id, store, db)
     text = body.reply_text.strip()
     review.reply_text, review.replied_at = (text, utcnow()) if text else (None, None)

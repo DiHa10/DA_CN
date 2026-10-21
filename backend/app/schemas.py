@@ -25,6 +25,25 @@ class StoreOut(StoreIn):
     id: int
     report_email: str | None
     weekly_report: bool
+    role: str  # vai trò của người đang xem
+
+
+ROLE_PATTERN = r"^(owner|manager|staff)$"
+
+
+class MemberOut(BaseModel):
+    user_id: int
+    email: str
+    role: str
+
+
+class MemberIn(BaseModel):
+    email: str = Field(max_length=255)
+    role: str = Field(pattern=ROLE_PATTERN)
+
+
+class RoleIn(BaseModel):
+    role: str = Field(pattern=ROLE_PATTERN)
 
 
 class ReportSettings(BaseModel):

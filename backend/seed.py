@@ -11,7 +11,7 @@ from sqlalchemy import select
 
 from app.db import SessionLocal
 from app.migrate import migrate
-from app.models import Review, Store, User
+from app.models import Review, Store, StoreMember, User
 from app.security import hash_password
 from app.services.analysis import analyze_reviews
 
@@ -38,7 +38,7 @@ def main(n=300):
         user = User(email=EMAIL, password_hash=hash_password(PASSWORD))
         db.add(user)
         db.flush()
-        store = Store(owner_id=user.id, name="Phở Ngon Quận 1", slug="pho-ngon-q1")
+        store = Store(name="Phở Ngon Quận 1", slug="pho-ngon-q1", members=[StoreMember(user_id=user.id, role="owner")])
         db.add(store)
         db.flush()
 

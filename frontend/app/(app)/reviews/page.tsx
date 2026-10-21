@@ -4,7 +4,7 @@ import { useNegativeAlert } from "@/components/negative-alert";
 import { ReplyBox } from "@/components/reply-box";
 import { AspectChip, SentimentBadge } from "@/components/sentiment-badge";
 import { useStores } from "@/components/store-context";
-import { api, type Review } from "@/lib/api";
+import { api, can, type Review } from "@/lib/api";
 import { ASPECT_LABEL, formatDate, SENTIMENT_LABEL, SOURCE_LABEL } from "@/lib/labels";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -84,12 +84,12 @@ function Reviews() {
           <p className="mt-1 text-[15px] text-muted">Mọi đánh giá của {store?.name}, mới nhất trước.</p>
         </div>
         <div className="flex gap-2">
-          {store && (
+          {store && can(store, "manager") && (
             <a className="btn" href={`/api/backend/stores/${store.id}/reviews/export.xlsx${query ? `?${query}` : ""}`}>
               Xuất Excel
             </a>
           )}
-          <Link href="/import" className="btn btn-primary">Nhập đánh giá</Link>
+          {can(store, "manager") && <Link href="/import" className="btn btn-primary">Nhập đánh giá</Link>}
         </div>
       </header>
 

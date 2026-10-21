@@ -1,5 +1,6 @@
 "use client";
 
+import { MembersSettings } from "@/components/members-settings";
 import { ReportSettings } from "@/components/report-settings";
 import { SectionRow } from "@/components/section-row";
 import { useStores } from "@/components/store-context";
@@ -81,18 +82,32 @@ export default function StoresPage() {
               )}
               <div className="flex flex-col items-start gap-3">
                 <button className="btn" onClick={() => downloadQr(s)}>Tải mã QR (PNG)</button>
-                <button className="tap cursor-pointer text-sm font-medium text-negative hover:underline" onClick={() => remove(s)}>
-                  Xóa cửa hàng
-                </button>
+                {s.role === "owner" && (
+                  <button className="tap cursor-pointer text-sm font-medium text-negative hover:underline" onClick={() => remove(s)}>
+                    Xóa cửa hàng
+                  </button>
+                )}
               </div>
             </div>
           </SectionRow>
-          <SectionRow title={stores.length > 1 ? `Báo cáo tuần · ${s.name}` : "Báo cáo tuần qua email"} description={<>
-            <p>Gửi lúc 8:00 sáng thứ Hai, tổng kết tuần trước: số đánh giá mới, tỉ lệ tiêu cực so với tuần trước đó, khía cạnh đang bị chê tăng và vài góp ý tiêu cực tiêu biểu.</p>
-            <p>Có gợi ý cải thiện thì email kèm câu ưu tiên số một.</p>
-          </>}>
-            <ReportSettings store={s} onSaved={reload} />
-          </SectionRow>
+          {s.role === "owner" && (
+            <>
+              <SectionRow title={stores.length > 1 ? `Báo cáo tuần · ${s.name}` : "Báo cáo tuần qua email"} description={<>
+                <p>Gửi lúc 8:00 sáng thứ Hai, tổng kết tuần trước: số đánh giá mới, tỉ lệ tiêu cực so với tuần trước đó, khía cạnh đang bị chê tăng và vài góp ý tiêu cực tiêu biểu.</p>
+                <p>Có gợi ý cải thiện thì email kèm câu ưu tiên số một.</p>
+              </>}>
+                <ReportSettings store={s} onSaved={reload} />
+              </SectionRow>
+              <SectionRow title={stores.length > 1 ? `Thành viên · ${s.name}` : "Thành viên"} description={<>
+                <p><b className="font-medium text-ink">Chủ quán:</b> toàn quyền, kể cả cài đặt, thành viên và xóa quán.</p>
+                <p><b className="font-medium text-ink">Quản lý:</b> nhập đánh giá, xuất Excel, tạo gợi ý AI.</p>
+                <p><b className="font-medium text-ink">Nhân viên:</b> xem và trả lời đánh giá.</p>
+                <p>Người được thêm phải đăng ký tài khoản trước.</p>
+              </>}>
+                <MembersSettings store={s} />
+              </SectionRow>
+            </>
+          )}
           </Fragment>
         );
       })}

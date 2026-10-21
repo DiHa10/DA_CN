@@ -3,7 +3,8 @@
 import { Mark, Wordmark } from "@/components/mark";
 import { NegativeAlertProvider, useNegativeAlert } from "@/components/negative-alert";
 import { StoreProvider, useStores } from "@/components/store-context";
-import { ExternalLink, LayoutDashboard, LogOut, MessagesSquare, Store, Upload } from "lucide-react";
+import { can } from "@/lib/api";
+import { Columns3, ExternalLink, LayoutDashboard, LogOut, MessagesSquare, Store, Upload } from "lucide-react";
 import Link from "next/link";
 import { Fragment } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -11,9 +12,16 @@ import { usePathname, useRouter } from "next/navigation";
 const NAV = [
   { href: "/dashboard", label: "Tổng quan", icon: LayoutDashboard },
   { href: "/reviews", label: "Đánh giá", icon: MessagesSquare },
-  { href: "/import", label: "Nhập dữ liệu", icon: Upload },
+  { href: "/compare", label: "So sánh", icon: Columns3, multiStore: true },
+  { href: "/import", label: "Nhập dữ liệu", icon: Upload, min: "manager" as const },
   { href: "/stores", label: "Cửa hàng", icon: Store },
 ];
+
+// mục điều hướng theo vai trò ở quán đang chọn; "So sánh" chỉ có nghĩa khi có từ 2 quán
+function useNav() {
+  const { stores, store } = useStores();
+  return NAV.filter((n) => (!n.min || can(store, n.min)) && (!n.multiStore || (stores?.length ?? 0) >= 2));
+}
 
 /*
  * Khung chữ L (sidebar 228px + top bar 48px) cùng nền --ground, không kẻ ranh giới giữa hai phần.
@@ -50,13 +58,14 @@ function Sidebar() {
   const pathname = usePathname();
   const logout = useLogout();
   const { newIds } = useNegativeAlert();
+  const nav = useNav();
   return (
     <aside className="hidden md:sticky md:top-0 md:row-span-2 md:flex md:h-screen md:flex-col md:px-3">
       <div className="flex h-12 items-center px-2">
         <Wordmark />
       </div>
       <nav aria-label="Điều hướng chính" className="mt-4 flex flex-col gap-0.5">
-        {NAV.map(({ href, label, icon: Icon }) => {
+        {nav.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);
           return (
             <Fragment key={href}>
@@ -117,9 +126,11 @@ function TopBar() {
 function BottomNav() {
   const pathname = usePathname();
   const { newIds } = useNegativeAlert();
+  const nav = useNav();
   return (
-    <nav aria-label="Điều hướng chính" className="fixed inset-x-0 bottom-0 z-10 grid grid-cols-4 border-t border-border bg-ground md:hidden">
-      {NAV.map(({ href, label, icon: Icon }) => {
+    <nav aria-label="Điều hướng chính" style={{ gridTemplateColumns: `repeat(${nav.length}, minmax(0, 1fr))` }}
+      className="fixed inset-x-0 bottom-0 z-10 grid border-t border-border bg-ground md:hidden">
+      {nav.map(({ href, label, icon: Icon }) => {
         const active = pathname.startsWith(href);
         return (
           <Link key={href} href={href} aria-current={active ? "page" : undefined}

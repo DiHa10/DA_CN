@@ -1,6 +1,28 @@
 export type Sentiment = "positive" | "neutral" | "negative";
 
-export type Store = { id: number; name: string; slug: string; report_email: string | null; weekly_report: boolean };
+export type Role = "owner" | "manager" | "staff";
+
+export type Store = {
+  id: number;
+  name: string;
+  slug: string;
+  report_email: string | null;
+  weekly_report: boolean;
+  role: Role; // vai trò của người đang xem ở quán này
+};
+
+const RANK: Record<Role, number> = { staff: 1, manager: 2, owner: 3 };
+// ẩn nút không được dùng; backend vẫn tự chặn bằng 403
+export const can = (store: Store | null, min: Role) => !!store && RANK[store.role] >= RANK[min];
+
+export type Member = { user_id: number; email: string; role: Role };
+
+type Rate = { mentions: number; negative_rate: number | null };
+export type Compare = {
+  days: number;
+  stores: ({ id: number; name: string; aspects: Record<string, Rate> } & Rate)[];
+  overall: { aspects: Record<string, Rate> } & Rate;
+};
 
 export type Review = {
   id: number;

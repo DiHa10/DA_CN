@@ -10,7 +10,7 @@ const formatTime = (iso: string) =>
   new Date(iso).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric" });
 
 // Tóm tắt AI: vấn đề chính và việc nên làm theo khía cạnh. Lưu ở backend nên mở trang không phải chạy AI lại.
-export function InsightsPanel({ storeId }: { storeId: number }) {
+export function InsightsPanel({ storeId, canRegenerate }: { storeId: number; canRegenerate: boolean }) {
   const [insight, setInsight] = useState<Insight | null | undefined>(undefined); // undefined = đang tải
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -39,10 +39,12 @@ export function InsightsPanel({ storeId }: { storeId: number }) {
     <section aria-busy={busy}>
       <div className="mb-2 flex items-center justify-between gap-3">
         <h2 className="text-base font-semibold">Gợi ý cải thiện</h2>
-        <button className="tap cursor-pointer text-sm font-medium text-accent hover:underline disabled:cursor-wait disabled:text-muted disabled:no-underline"
-          onClick={regenerate} disabled={busy}>
-          {busy ? "AI đang đọc…" : insight ? "Cập nhật" : "Tạo gợi ý"}
-        </button>
+        {canRegenerate && (
+          <button className="tap cursor-pointer text-sm font-medium text-accent hover:underline disabled:cursor-wait disabled:text-muted disabled:no-underline"
+            onClick={regenerate} disabled={busy}>
+            {busy ? "AI đang đọc…" : insight ? "Cập nhật" : "Tạo gợi ý"}
+          </button>
+        )}
       </div>
       <div className="panel">
         <p className="border-b border-rule px-4 py-2.5 text-xs text-muted">
@@ -52,7 +54,7 @@ export function InsightsPanel({ storeId }: { storeId: number }) {
         </p>
         {error && <p role="alert" className="px-4 pt-3 text-sm text-negative">{error}</p>}
         {insight === undefined && !error && <p className="px-4 py-3 text-sm text-muted">Đang tải…</p>}
-        {insight === null && !error && <p className="px-4 py-3 text-sm text-muted">Chưa có gợi ý. Bấm “Tạo gợi ý”.</p>}
+        {insight === null && !error && <p className="px-4 py-3 text-sm text-muted">{canRegenerate ? "Chưa có gợi ý. Bấm “Tạo gợi ý”." : "Chưa có gợi ý. Quản lý hoặc chủ quán tạo gợi ý."}</p>}
 
         {c && (
           <ul>

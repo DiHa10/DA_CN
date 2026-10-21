@@ -20,7 +20,6 @@ class User(Base):
 class Store(Base):
     __tablename__ = "stores"
     id: Mapped[int] = mapped_column(primary_key=True)
-    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     name: Mapped[str] = mapped_column(String(200))
     slug: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     google_location_id: Mapped[str | None] = mapped_column(String(200))
@@ -31,6 +30,15 @@ class Store(Base):
 
     reviews: Mapped[list["Review"]] = relationship(cascade="all, delete-orphan")
     insight: Mapped["StoreInsight | None"] = relationship(cascade="all, delete-orphan")
+    members: Mapped[list["StoreMember"]] = relationship(cascade="all, delete-orphan")
+
+
+class StoreMember(Base):
+    """Ai được làm gì ở quán nào. Nguồn quyền duy nhất (thay cho stores.owner_id cũ)."""
+    __tablename__ = "store_members"
+    store_id: Mapped[int] = mapped_column(ForeignKey("stores.id", ondelete="CASCADE"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True)
+    role: Mapped[str] = mapped_column(String(10))  # owner | manager | staff
 
 
 class Review(Base):

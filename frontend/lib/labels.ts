@@ -48,3 +48,9 @@ export const formatNum = (n: number, digits = 1) =>
   n.toLocaleString("vi-VN", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 
 export const formatPct = (n: number, total: number) => (total ? `${formatNum((n / total) * 100)}%` : "—");
+
+export const ROLE_LABEL: Record<string, string> = {
+  owner: "Chủ quán",
+  manager: "Quản lý",
+  staff: "Nhân viên",
+};

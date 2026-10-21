@@ -8,7 +8,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from .db import get_db
-from .models import Store, User
+from .models import Store, StoreMember, User
 
 PRODUCTION = os.getenv("APP_ENV") == "production"
 DEV_SECRET = "dev-secret-change-me"
@@ -46,9 +46,26 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     return user
 
 
-def get_owned_store(store_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> Store:
-    store = db.get(Store, store_id)
-    # trả 404 cả khi cửa hàng của người khác, để không lộ id tồn tại
-    if not store or store.owner_id != user.id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy cửa hàng")
-    return store
+ROLE_RANK = {"staff": 1, "manager": 2, "owner": 3}
+
+
+def store_access(min_role: str):
+    """Dependency: quán theo store_id trên URL, chỉ khi người dùng có vai trò >= min_role ở quán đó."""
+
+    def dependency(store_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> Store:
+        member = db.get(StoreMember, (store_id, user.id))
+        # không phải thành viên: 404 như quán không tồn tại, để không lộ id quán của người khác
+        if not member:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy cửa hàng")
+        if ROLE_RANK[member.role] < ROLE_RANK[min_role]:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Vai trò của bạn ở quán này không được làm việc này")
+        store = db.get(Store, store_id)
+        store.role = member.role  # giao diện dựa vào đây để ẩn nút không được dùng
+        return store
+
+    return dependency
+
+
+staff_store = store_access("staff")  # xem, trả lời review
+manager_store = store_access("manager")  # nhập dữ liệu, xuất Excel, tạo tóm tắt AI
+owner_store = store_access("owner")  # cài đặt quán, thành viên, xóa quán

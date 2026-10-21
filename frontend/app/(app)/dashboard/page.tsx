@@ -3,7 +3,7 @@
 import { InsightsPanel } from "@/components/insights-panel";
 import { useNegativeAlert } from "@/components/negative-alert";
 import { useStores } from "@/components/store-context";
-import { api, type AspectRow, type Review, type Summary } from "@/lib/api";
+import { api, can, type AspectRow, type Review, type Summary } from "@/lib/api";
 import {
   ACCENT, ASPECT_LABEL, formatDate, formatNum, formatPct, SENTIMENT_COLOR, SENTIMENT_LABEL, SOURCE_LABEL,
 } from "@/lib/labels";
@@ -48,7 +48,7 @@ export default function DashboardPage() {
               : "Chưa có khía cạnh nào bị chê."}
           </p>
         </div>
-        <Link href="/import" className="btn btn-primary">Nhập đánh giá</Link>
+        {can(store, "manager") && <Link href="/import" className="btn btn-primary">Nhập đánh giá</Link>}
       </header>
 
       {error && (
@@ -72,7 +72,7 @@ export default function DashboardPage() {
             <Trend data={data} />
           </div>
           <div className="space-y-6">
-            {store && <InsightsPanel storeId={store.id} />}
+            {store && <InsightsPanel storeId={store.id} canRegenerate={can(store, "manager")} />}
             <RecentNegative reviews={recent} />
           </div>
         </div>

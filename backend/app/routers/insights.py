@@ -5,7 +5,7 @@ from ..db import get_db
 from ..models import Store, StoreInsight
 from ..ratelimit import SlidingWindow
 from ..schemas import InsightOut
-from ..security import get_owned_store
+from ..security import manager_store, staff_store
 from ..services import insights
 from ..services.llm import LLMError
 
@@ -16,12 +16,12 @@ per_store = SlidingWindow(10, 3600, "Đã tạo tóm tắt nhiều lần trong g
 
 
 @router.get("", response_model=InsightOut | None)
-def latest(store: Store = Depends(get_owned_store), db: Session = Depends(get_db)):
+def latest(store: Store = Depends(staff_store), db: Session = Depends(get_db)):
     return db.get(StoreInsight, store.id)
 
 
 @router.post("", response_model=InsightOut)
-def regenerate(store: Store = Depends(get_owned_store), db: Session = Depends(get_db)):
+def regenerate(store: Store = Depends(manager_store), db: Session = Depends(get_db)):
     per_store.check(str(store.id))  # chỉ tính lượt khi AI trả kết quả thành công
     try:
         result = insights.generate(db, store)
