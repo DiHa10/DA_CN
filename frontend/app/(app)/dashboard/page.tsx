@@ -27,7 +27,7 @@ export default function DashboardPage() {
     setError("");
     Promise.all([
       api<Summary>(`/stores/${store.id}/dashboard`),
-      api<Review[]>(`/stores/${store.id}/reviews?sentiment=negative&limit=3`),
+      api<Review[]>(`/stores/${store.id}/reviews?sentiment=negative&hidden=false&limit=3`),
     ]).then(([s, r]) => { setData(s); setRecent(r); }, (e) => setError(e.message));
   }, [store]);
   useEffect(load, [load]);

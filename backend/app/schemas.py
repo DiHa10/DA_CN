@@ -55,6 +55,10 @@ class ReplyIn(BaseModel):
     reply_text: str = Field(max_length=2000)  # chuỗi rỗng = xóa câu trả lời
 
 
+class HiddenIn(BaseModel):
+    hidden: bool
+
+
 class ReplyDraft(BaseModel):
     reply_text: str
 
@@ -103,6 +107,8 @@ class ReviewOut(BaseModel):
     created_at: datetime
     reply_text: str | None
     replied_at: datetime | None
+    spam_reasons: list[str] | None
+    hidden: bool
     analysis: AnalysisOut | None
     aspects: list[AspectOut]
 

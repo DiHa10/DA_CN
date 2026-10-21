@@ -56,6 +56,10 @@ class Review(Base):
     # câu trả lời của chủ quán (chưa đăng lên Google; chủ quán sao chép và dán)
     reply_text: Mapped[str | None] = mapped_column(Text)
     replied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # chống spam: mã băm IP người gửi qua QR (không lưu IP gốc), lý do nghi ngờ, và quyết định ẩn của chủ quán
+    client_hash: Mapped[str | None] = mapped_column(String(64), index=True)
+    spam_reasons: Mapped[list[str] | None] = mapped_column(JSON(none_as_null=True))  # None phải là SQL NULL để lọc IS NULL
+    hidden: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
 
     analysis: Mapped["ReviewAnalysis | None"] = relationship(cascade="all, delete-orphan", lazy="selectin")
     aspects: Mapped[list["ReviewAspect"]] = relationship(cascade="all, delete-orphan", lazy="selectin")
@@ -83,3 +87,8 @@ class StoreInsight(Base):
     store_id: Mapped[int] = mapped_column(ForeignKey("stores.id", ondelete="CASCADE"), primary_key=True)
     generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     content: Mapped[dict] = mapped_column(JSON)
+
+
+def counted():
+    """Điều kiện "review được tính vào thống kê": bỏ review chủ quán đã ẩn (spam). Mọi chỗ thống kê dùng chung."""
+    return Review.hidden.is_(False)

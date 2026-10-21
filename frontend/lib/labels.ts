@@ -54,3 +54,10 @@ export const ROLE_LABEL: Record<string, string> = {
   manager: "Quản lý",
   staff: "Nhân viên",
 };
+
+export const SPAM_LABEL: Record<string, string> = {
+  duplicate: "Trùng lặp",
+  burst: "Gửi dồn dập",
+  gibberish: "Nội dung vô nghĩa",
+  rating_mismatch: "Số sao ngược nội dung",
+};

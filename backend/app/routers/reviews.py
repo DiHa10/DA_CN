@@ -7,10 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..labels import ASPECT_VI, SENTIMENT_VI, SOURCE_VI
+from ..labels import ASPECT_VI, SENTIMENT_VI, SOURCE_VI, SPAM_VI
 from ..models import Review, ReviewAnalysis, ReviewAspect, Store, utcnow
 from ..ratelimit import SlidingWindow
-from ..schemas import ReplyDraft, ReplyIn, ReviewIn, ReviewOut
+from ..schemas import HiddenIn, ReplyDraft, ReplyIn, ReviewIn, ReviewOut
 from ..security import manager_store, staff_store
 from ..services import reply
 from ..services.analysis import analyze_reviews
@@ -31,6 +31,8 @@ def filtered_reviews(
     date_from: date | None = None,
     date_to: date | None = None,
     replied: bool | None = None,
+    spam: bool | None = None,
+    hidden: bool | None = None,
 ):
     """Bộ lọc dùng chung cho danh sách và file Excel, để file xuất ra khớp đúng những gì đang xem."""
     q = select(Review).where(Review.store_id == store.id)
@@ -44,6 +46,10 @@ def filtered_reviews(
         q = q.where(Review.created_at >= vn_day_start(date_from))
     if date_to:
         q = q.where(Review.created_at < vn_day_start(date_to + timedelta(days=1)))
+    if spam is not None:
+        q = q.where(Review.spam_reasons.is_not(None) if spam else Review.spam_reasons.is_(None))
+    if hidden is not None:
+        q = q.where(Review.hidden.is_(hidden))
     if replied is not None:
         q = q.where(Review.reply_text.is_not(None) if replied else Review.reply_text.is_(None))
     return q.order_by(Review.created_at.desc(), Review.id.desc())
@@ -69,8 +75,10 @@ def export_reviews(q=Depends(filtered_reviews), store: Store = Depends(manager_s
             "Nội dung": _excel_safe(r.content),
             "Cảm xúc": SENTIMENT_VI[r.analysis.sentiment] if r.analysis else "Chưa phân tích",
             **{label: aspects.get(key, "") for key, label in ASPECT_VI.items()},
+            "Nghi spam": ", ".join(SPAM_VI.get(x, x) for x in r.spam_reasons or []),
+            "Ẩn khỏi thống kê": "Có" if r.hidden else "",
         })
-    columns = ["Ngày", "Nguồn", "Khách", "Số sao", "Nội dung", "Cảm xúc", *ASPECT_VI.values()]
+    columns = ["Ngày", "Nguồn", "Khách", "Số sao", "Nội dung", "Cảm xúc", *ASPECT_VI.values(), "Nghi spam", "Ẩn khỏi thống kê"]
     buf = io.BytesIO()
     pd.DataFrame(rows, columns=columns).to_excel(buf, index=False, sheet_name="Đánh giá")
     filename = f"danh-gia-{store.slug}-{date.today().isoformat()}.xlsx"
@@ -168,6 +176,17 @@ def save_reply(review_id: int, body: ReplyIn, store: Store = Depends(staff_store
     review = _owned_review(review_id, store, db)
     text = body.reply_text.strip()
     review.reply_text, review.replied_at = (text, utcnow()) if text else (None, None)
+    db.commit()
+    return review
+
+
+@router.put("/{review_id}/hidden", response_model=ReviewOut)
+def set_hidden(review_id: int, body: HiddenIn, store: Store = Depends(manager_store), db: Session = Depends(get_db)):
+    """Ẩn review (thường là spam) khỏi thống kê, tóm tắt AI và báo cáo; review vẫn còn để xem lại hoặc bỏ ẩn."""
+    review = _owned_review(review_id, store, db)
+    if body.hidden and not review.spam_reasons:  # ẩn tùy ý thì giấu được lời chê thật khỏi báo cáo
+        raise HTTPException(400, "Chỉ ẩn được đánh giá bị nghi spam")
+    review.hidden = body.hidden
     db.commit()
     return review
 

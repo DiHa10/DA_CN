@@ -33,6 +33,8 @@ export type Review = {
   created_at: string;
   reply_text: string | null;
   replied_at: string | null;
+  spam_reasons: string[] | null;
+  hidden: boolean;
   analysis: { sentiment: Sentiment; confidence: number } | null;
   aspects: { aspect: string; sentiment: Sentiment }[];
 };

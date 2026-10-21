@@ -4,15 +4,15 @@ import { useNegativeAlert } from "@/components/negative-alert";
 import { ReplyBox } from "@/components/reply-box";
 import { AspectChip, SentimentBadge } from "@/components/sentiment-badge";
 import { useStores } from "@/components/store-context";
-import { api, can, type Review } from "@/lib/api";
-import { ASPECT_LABEL, formatDate, SENTIMENT_LABEL, SOURCE_LABEL } from "@/lib/labels";
+import { api, can, json, type Review } from "@/lib/api";
+import { ASPECT_LABEL, formatDate, SENTIMENT_LABEL, SOURCE_LABEL, SPAM_LABEL } from "@/lib/labels";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
 const PAGE = 50;
 const TABS = [["", "Tất cả"], ["negative", SENTIMENT_LABEL.negative], ["neutral", SENTIMENT_LABEL.neutral], ["positive", SENTIMENT_LABEL.positive]];
-const FILTERS = ["aspect", "source", "replied", "date_from", "date_to"] as const;
+const FILTERS = ["aspect", "source", "replied", "spam", "hidden", "date_from", "date_to"] as const;
 
 export default function ReviewsPage() {
   return (
@@ -66,6 +66,16 @@ function Reviews() {
     markSeen();
   }, [sentiment, reviews, newIds, markSeen]);
 
+  const replace = (saved: Review) => setReviews((list) => list && list.map((x) => (x.id === saved.id ? saved : x)));
+
+  async function toggleHidden(r: Review) {
+    try {
+      replace(await api<Review>(`/stores/${store!.id}/reviews/${r.id}/hidden`, json("PUT", { hidden: !r.hidden })));
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
   const select = (key: string, label: string, options: Record<string, string>) => (
     <>
       <label htmlFor={key} className="sr-only">{label}</label>
@@ -110,6 +120,8 @@ function Reviews() {
         {select("aspect", "Khía cạnh", ASPECT_LABEL)}
         {select("source", "Nguồn", SOURCE_LABEL)}
         {select("replied", "Phản hồi", { false: "Chưa trả lời", true: "Đã trả lời" })}
+        {select("spam", "Spam", { true: "Nghi spam", false: "Không nghi spam" })}
+        {select("hidden", "Thống kê", { false: "Đang tính", true: "Đã ẩn" })}
         <label htmlFor="date_from" className="text-sm text-muted">Từ</label>
         <input id="date_from" type="date" className="control" value={params.get("date_from") ?? ""} onChange={(e) => setFilter("date_from", e.target.value)} />
         <label htmlFor="date_to" className="text-sm text-muted">đến</label>
@@ -148,15 +160,29 @@ function Reviews() {
                 <td className="w-full md:w-auto md:py-3 md:pr-4">
                   <p>
                     {shownNew.has(r.id) && <span className="mr-2 rounded bg-[#ffedea] px-1.5 text-xs font-medium text-[#831c1e]">Mới</span>}
-                    <span className="hand">{r.content}</span>
+                    <span className={`hand ${r.hidden ? "text-muted line-through decoration-1" : ""}`}>{r.content}</span>
                   </p>
+                  {(r.spam_reasons || r.hidden) && (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                      {r.spam_reasons && (
+                        <span className="rounded border border-control px-1.5 py-0.5 text-ink">
+                          Nghi spam: {r.spam_reasons.map((x) => SPAM_LABEL[x] ?? x).join(", ")}
+                        </span>
+                      )}
+                      {r.hidden && <span className="text-muted">Đã ẩn khỏi thống kê</span>}
+                      {can(store, "manager") && (
+                        <button className="tap cursor-pointer font-medium text-accent hover:underline" onClick={() => toggleHidden(r)}>
+                          {r.hidden ? "Tính lại vào thống kê" : "Ẩn khỏi thống kê"}
+                        </button>
+                      )}
+                    </div>
+                  )}
                   {r.aspects.length > 0 && (
                     <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
                       {r.aspects.map((a) => <AspectChip key={a.aspect} label={ASPECT_LABEL[a.aspect] ?? a.aspect} sentiment={a.sentiment} />)}
                     </div>
                   )}
-                  <ReplyBox storeId={store!.id} review={r}
-                    onSaved={(saved) => setReviews((list) => list && list.map((x) => (x.id === saved.id ? saved : x)))} />
+                  <ReplyBox storeId={store!.id} review={r} onSaved={replace} />
                 </td>
                 <td className="text-xs text-muted md:py-3 md:pr-4 md:text-sm">{SOURCE_LABEL[r.source] ?? r.source}</td>
                 <td className="num text-xs text-muted md:py-3 md:pr-4 md:text-right md:text-sm md:text-ink">

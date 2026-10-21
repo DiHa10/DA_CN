@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 
 from ..db import SessionLocal
 from ..labels import ASPECT_VI
-from ..models import Review, Store
+from ..models import Review, Store, counted
 from ..timeutil import VN, as_utc, vn_day_start
 
 log = logging.getLogger(__name__)
@@ -66,7 +66,7 @@ def build(db: Session, store: Store, now: datetime) -> EmailMessage:
     start, end, _ = last_week(now)
     prev_start = start - timedelta(days=7)
     rows = db.scalars(select(Review).where(Review.store_id == store.id, Review.created_at >= prev_start,
-                                           Review.created_at < end).order_by(Review.created_at.desc())).all()
+                                           Review.created_at < end, counted()).order_by(Review.created_at.desc())).all()
     this = [r for r in rows if as_utc(r.created_at) >= start]
     prev = [r for r in rows if as_utc(r.created_at) < start]
     n, neg, aspects = _stats(this)

@@ -35,7 +35,7 @@ export function NegativeAlertProvider({ children }: { children: React.ReactNode 
 
   const poll = useCallback(async () => {
     if (!store) return;
-    const rows = await api<Review[]>(`/stores/${store.id}/reviews?sentiment=negative&limit=50`).catch(() => null);
+    const rows = await api<Review[]>(`/stores/${store.id}/reviews?sentiment=negative&hidden=false&limit=50`).catch(() => null);
     if (!rows) return;
     let mark = readSeen(store.id);
     const top = Math.max(0, ...rows.map((r) => r.id));

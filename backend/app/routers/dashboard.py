@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import Review, Store
+from ..models import Review, Store, counted
 from ..security import staff_store
 from ..timeutil import as_utc, vn_date
 
@@ -18,7 +18,7 @@ SENTIMENTS = ("positive", "neutral", "negative")
 @router.get("")
 def summary(store: Store = Depends(staff_store), db: Session = Depends(get_db)):
     # shortcut: tổng hợp trong Python, ổn tới vài chục nghìn review; chuyển sang GROUP BY trong SQL nếu chậm
-    reviews = db.scalars(select(Review).where(Review.store_id == store.id)).all()
+    reviews = db.scalars(select(Review).where(Review.store_id == store.id, counted())).all()
     analyzed = [r for r in reviews if r.analysis]
 
     totals = Counter(r.analysis.sentiment for r in analyzed)

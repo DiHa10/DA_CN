@@ -6,6 +6,7 @@ from ..db import get_db
 from ..models import Review, Store
 from ..ratelimit import SlidingWindow
 from ..schemas import PublicStore, ReviewIn
+from ..services import spam
 from ..services.analysis import analyze_reviews
 
 router = APIRouter(prefix="/public/stores", tags=["public"])
@@ -39,10 +40,11 @@ def get_public_store(slug: str, db: Session = Depends(get_db)):
 @router.post("/{slug}/reviews", status_code=201)
 def submit_review(slug: str, body: ReviewIn, request: Request, tasks: BackgroundTasks,
                   db: Session = Depends(get_db)):
-    per_ip.hit(_client_ip(request))
+    ip = _client_ip(request)
+    per_ip.hit(ip)
     store = _store_by_slug(slug, db)
     per_store.hit(str(store.id))
-    review = Review(store_id=store.id, source="qr", **body.model_dump())
+    review = Review(store_id=store.id, source="qr", client_hash=spam.client_hash(ip), **body.model_dump())
     db.add(review)
     db.commit()
     tasks.add_task(analyze_reviews, [review.id])

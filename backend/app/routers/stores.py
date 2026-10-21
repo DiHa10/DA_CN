@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import Review, ReviewAnalysis, ReviewAspect, Store, StoreMember, User
+from ..models import Review, ReviewAnalysis, ReviewAspect, Store, StoreMember, User, counted
 from ..ratelimit import SlidingWindow
 from ..schemas import MemberIn, MemberOut, ReportSettings, RoleIn, StoreIn, StoreOut
 from ..security import get_current_user, owner_store, staff_store
@@ -45,7 +45,7 @@ def compare_stores(user: User = Depends(get_current_user), db: Session = Depends
                         .order_by(Store.id)).all()
     ids = [s.id for s in stores]
     since = datetime.now(timezone.utc) - timedelta(days=COMPARE_DAYS)
-    in_window = (Review.store_id.in_(ids), Review.created_at >= since)
+    in_window = (Review.store_id.in_(ids), Review.created_at >= since, counted())
 
     sentiment = defaultdict(Counter)
     for sid, label, n in db.execute(select(Review.store_id, ReviewAnalysis.sentiment, func.count())

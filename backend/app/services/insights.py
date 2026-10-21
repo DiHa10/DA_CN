@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..labels import ASPECT_VI
-from ..models import Review, ReviewAspect, Store, StoreInsight, utcnow
+from ..models import Review, ReviewAspect, Store, StoreInsight, counted, utcnow
 from . import llm
 
 WINDOW_DAYS = 30
@@ -49,7 +49,7 @@ def collect_negative(db: Session, store: Store, now: datetime) -> tuple[dict[str
     rows = db.execute(
         select(Review.id, Review.content, ReviewAspect.aspect)
         .join(ReviewAspect, ReviewAspect.review_id == Review.id)
-        .where(Review.store_id == store.id, ReviewAspect.sentiment == "negative", Review.created_at >= since)
+        .where(Review.store_id == store.id, ReviewAspect.sentiment == "negative", Review.created_at >= since, counted())
         .order_by(Review.created_at.desc(), Review.id.desc())
     ).all()
     samples: dict[str, list[str]] = {}
