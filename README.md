@@ -63,7 +63,18 @@ cd ml
 ```
 Kết quả: `ml/reports/results.md`, `ml/reports/confusion_phobert.png`.
 
-Tập test review ngắn (nhóm tự gán nhãn): xem `ml/short_test/HUONG_DAN.md`, kết quả ở `ml/reports/short_results.md`. Dữ liệu: bản mirror `clapAI/VLSP2018_SA` trên Hugging Face (VLSP 2018, chỉ dùng cho nghiên cứu).
+Tập test review ngắn (nhóm tự gán nhãn): xem `ml/short_test/HUONG_DAN.md`, kết quả ở `ml/reports/short_results.md`.
+
+Đo phát hiện spam (khoảng 3 phút) và mô phỏng cảnh báo bất thường:
+```bash
+../backend/.venv/Scripts/python -X utf8 eval_spam.py
+```
+```bash
+../backend/.venv/Scripts/python -X utf8 eval_anomaly.py
+```
+Kết quả: `ml/reports/spam_results.md`, `ml/reports/anomaly_results.md`.
+
+Dữ liệu: bản mirror `clapAI/VLSP2018_SA` trên Hugging Face (VLSP 2018, chỉ dùng cho nghiên cứu).
 
 Bật PhoBERT trong backend: đặt biến môi trường `NLP_MODEL_DIR=D:/DA_CN/ml/models/absa` trước khi chạy uvicorn. Không đặt thì backend dùng bộ từ điển.
 

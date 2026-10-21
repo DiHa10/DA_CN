@@ -3,7 +3,7 @@
 Báo khi đủ cả ba điều kiện, để vài review lẻ không làm chủ quán giật mình:
 - đủ dữ liệu: ít nhất MIN_MENTIONS lượt nhắc trong tuần và MIN_BASELINE lượt trong 8 tuần trước;
 - tăng đáng kể: tỉ lệ chê cao hơn mức nền ít nhất MIN_JUMP (15 điểm phần trăm);
-- khó là ngẫu nhiên: z = (tỉ lệ tuần - mức nền) / sai số chuẩn nhị thức >= MIN_Z.
+- khó là ngẫu nhiên: z của kiểm định hai tỉ lệ (tuần này so với 8 tuần trước) >= MIN_Z.
 """
 
 from collections import defaultdict
@@ -28,8 +28,10 @@ def is_anomaly(neg: int, n: int, base_neg: int, base_n: int) -> tuple[bool, floa
     if n < MIN_MENTIONS or base_n < MIN_BASELINE:
         return False, 0.0
     rate, p0 = neg / n, base_neg / base_n
-    p = min(max(p0, 0.05), 0.95)  # mức nền 0% thì sai số chuẩn bằng 0: kẹp lại để z không chia cho 0
-    z = (rate - p0) / sqrt(p * (1 - p) / n)
+    # kiểm định hai tỉ lệ: mức nền cũng chỉ là ước lượng từ mẫu; bỏ qua nhiễu của nó thì báo nhầm 2-4%/lần (ml/eval_anomaly.py)
+    p = (neg + base_neg) / (n + base_n)
+    p = min(max(p, 0.05), 0.95)  # tỉ lệ gộp 0% thì sai số chuẩn bằng 0: kẹp lại để z không chia cho 0
+    z = (rate - p0) / sqrt(p * (1 - p) * (1 / n + 1 / base_n))
     return rate - p0 >= MIN_JUMP and z >= MIN_Z, z
 
 
