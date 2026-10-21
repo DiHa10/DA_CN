@@ -1,22 +1,23 @@
 @import "tailwindcss";
 
-/* Style "framed-sheet" (taste-skill seed 237270840): khung xám-xanh hình chữ L, nội dung trên tấm trắng, không bóng đổ */
+/* Hướng "Sổ góp ý": giấy trắng lạnh, mực xanh đen, đường kẻ dòng xanh nhạt, đỏ lề vở chỉ dành cho "chê".
+   Lời khách viết tay (Patrick Hand), lời của quán và hệ thống in (Be Vietnam Pro). */
 :root {
-  --ground: #f3f6f7; /* khung tô theo màu teal của sản phẩm */
+  --ground: #f3f5f9; /* nền khung: giấy lạnh, không phải màu kem */
   --surface: #ffffff;
-  --raised: #f4f6f8;
-  --active: #e6eaec;
-  --border: #e8eaec;
-  --rule: #f0f1f2;
-  --control: #cdced1;
-  --ink: #131416;
-  --muted: #5d5f60;
-  --accent: #1b6c80;
-  --positive: #1e7b4f;
-  --negative: #c4242a;
-  --neutral-mark: #b4b8bc;
-  --star: #a86f0c;
-  --primary: #1d1f20;
+  --raised: #f6f8fb;
+  --active: #e6eaf2;
+  --border: #dde3ee;
+  --rule: #e4e9f2; /* đường kẻ dòng của vở */
+  --control: #c7cedb;
+  --ink: #1f2a55; /* mực xanh đen */
+  --muted: #59617e;
+  --accent: #2c4ba0; /* xanh mực: link, đường biểu đồ */
+  --positive: #2e7d4f;
+  --negative: #c8323c; /* đỏ lề vở */
+  --margin: rgb(200 50 60 / 0.45); /* đường lề đỏ, nhạt để không lấn dữ liệu */
+  --star: #b7791f;
+  --primary: #1f2a55;
 }
 
 @theme inline {
@@ -34,7 +35,8 @@
   --color-negative: var(--negative);
   --color-star: var(--star);
   --color-primary: var(--primary);
-  --font-sans: var(--font-plex), system-ui, sans-serif;
+  --font-sans: var(--font-ui), system-ui, sans-serif;
+  --font-hand: var(--font-hand-face), var(--font-ui), cursive;
 }
 
 body {
@@ -56,7 +58,7 @@ body {
   }
   .btn-primary {
     /* dùng chung với .btn: class="btn btn-primary" — nút chính màu gần đen, mỗi màn hình một nút */
-    @apply border-primary bg-primary text-white hover:bg-[#33363a] active:bg-black;
+    @apply border-primary bg-primary text-white hover:bg-[#2b3870] active:bg-[#141c3d];
   }
   .input {
     @apply h-10 w-full rounded-md border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted;
@@ -66,6 +68,14 @@ body {
   }
   .label {
     @apply mb-2 block text-sm font-medium;
+  }
+  /* lời khách: chữ viết tay, như chép vào sổ góp ý */
+  .hand {
+    @apply font-hand text-[18px] leading-6 text-accent; /* mực bút bi xanh, khác mực in của hệ thống */
+  }
+  /* đường lề đỏ của vở bên trái các khối chứa lời khách */
+  .notebook {
+    box-shadow: inset 2px 0 0 var(--margin);
   }
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-accent;

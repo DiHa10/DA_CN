@@ -148,7 +148,7 @@ function Reviews() {
                 <td className="w-full md:w-auto md:py-3 md:pr-4">
                   <p>
                     {shownNew.has(r.id) && <span className="mr-2 rounded bg-[#ffedea] px-1.5 text-xs font-medium text-[#831c1e]">Mới</span>}
-                    {r.content}
+                    <span className="hand">{r.content}</span>
                   </p>
                   {r.aspects.length > 0 && (
                     <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">

@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans } from "next/font/google";
+import { Be_Vietnam_Pro, Patrick_Hand } from "next/font/google";
 import "./globals.css";
 
-const plex = IBM_Plex_Sans({
-  variable: "--font-plex",
+const ui = Be_Vietnam_Pro({
+  variable: "--font-ui",
   subsets: ["latin", "vietnamese"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
+});
+
+// chỉ cho lời khách
+const hand = Patrick_Hand({
+  variable: "--font-hand-face",
+  subsets: ["latin", "vietnamese"],
+  weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -20,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi">
-      <body className={`${plex.variable} font-sans antialiased`}>{children}</body>
+      <body className={`${ui.variable} ${hand.variable} font-sans antialiased`}>{children}</body>
     </html>
   );
 }

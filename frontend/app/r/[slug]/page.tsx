@@ -76,7 +76,7 @@ export default function PublicReviewPage() {
             <div className="mt-6">
               <label htmlFor="content" className="label">Điều bạn thích hoặc muốn quán sửa</label>
               <textarea id="content" name="content" required minLength={2} maxLength={2000} rows={5}
-                className="input h-auto py-2.5 text-base" aria-describedby="content-hint" />
+                className="input hand h-auto py-2.5 text-[19px] leading-7" aria-describedby="content-hint" />
               <p id="content-hint" className="mt-1 text-xs text-muted">Món ăn, phục vụ, giá cả, không gian…</p>
             </div>
             <div className="mt-5">

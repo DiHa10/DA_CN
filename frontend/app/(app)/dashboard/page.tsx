@@ -143,7 +143,7 @@ function AspectBoard({ aspects }: { aspects: AspectRow[] }) {
       {aspects.length === 0 ? (
         <p className="px-5 py-4 text-sm text-muted">Chưa đủ dữ liệu: mỗi khía cạnh cần ít nhất {MIN_MENTIONS} lượt nhắc.</p>
       ) : (
-        <ul className="mt-2 pb-2">
+        <ul className="notebook mt-2 pb-2">
           {aspects.map((a) => {
             const label = ASPECT_LABEL[a.aspect] ?? a.aspect;
             return (
@@ -163,8 +163,9 @@ function AspectBoard({ aspects }: { aspects: AspectRow[] }) {
                   </p>
                 </div>
                 {a.latest_negative && (
-                  <p className="mt-1.5 truncate text-[13px] text-muted sm:ml-[148px]">
-                    “{a.latest_negative.content}” <span className="whitespace-nowrap">· {formatDate(a.latest_negative.created_at)}</span>
+                  <p className="mt-1 truncate sm:ml-[148px]">
+                    <span className="hand">{a.latest_negative.content}</span>{" "}
+                    <span className="text-xs whitespace-nowrap text-muted">· {formatDate(a.latest_negative.created_at)}</span>
                   </p>
                 )}
               </li>
@@ -186,7 +187,7 @@ function Trend({ data }: { data: Summary }) {
   const step = Math.max(avg, ...points.map((p) => p.rate)) > 40 ? 20 : 10;
   const top = (Math.floor(Math.max(avg, ...points.map((p) => p.rate)) / step) + 1) * step;
   const ticks = Array.from({ length: top / step + 1 }, (_, i) => i * step);
-  const axis = { stroke: "transparent", tick: { fill: "#5d5f60", fontSize: 12 } };
+  const axis = { stroke: "transparent", tick: { fill: "#59617e", fontSize: 12 } };
 
   return (
     <section className="panel px-5 pt-4 pb-3">
@@ -195,13 +196,13 @@ function Trend({ data }: { data: Summary }) {
       <div className="mt-3 h-[200px]">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={points} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-            <CartesianGrid stroke="#e5e5e5" vertical={false} />
+            <CartesianGrid stroke="#e4e9f2" vertical={false} />
             <XAxis dataKey="label" {...axis} tickLine={false} minTickGap={24} />
             <YAxis domain={[0, top]} ticks={ticks} unit="%" {...axis} tickLine={false} />
-            <ReferenceLine y={avg} stroke="#5d5f60" strokeDasharray="4 4" />
+            <ReferenceLine y={avg} stroke="#59617e" strokeDasharray="4 4" />
             <Tooltip
-              cursor={{ stroke: "#cdced1" }}
-              contentStyle={{ border: "1px solid #e8eaec", borderRadius: 6, fontSize: 13, padding: "6px 10px" }}
+              cursor={{ stroke: "#c7cedb" }}
+              contentStyle={{ border: "1px solid #dde3ee", borderRadius: 6, fontSize: 13, padding: "6px 10px" }}
               labelFormatter={(_, p) => (p[0] ? `Tuần từ ${formatDate(p[0].payload.week)}` : "")}
               formatter={(_, __, p) => [`${formatNum(p.payload.rate)}% (${p.payload.neg}/${p.payload.n} đánh giá)`, "Tiêu cực"]}
             />
@@ -224,12 +225,12 @@ function RecentNegative({ reviews }: { reviews: Review[] | null }) {
         ) : reviews.length === 0 ? (
           <p className="px-4 py-3 text-sm text-muted">Chưa có đánh giá tiêu cực nào.</p>
         ) : (
-          <ul>
+          <ul className="notebook">
             {reviews.map((r) => (
               <li key={r.id} className="border-t border-rule px-4 py-3 first:border-t-0">
                 <p className="line-clamp-2">
                   {newIds.has(r.id) && <span className="mr-2 rounded bg-[#ffedea] px-1.5 text-xs font-medium text-[#831c1e]">Mới</span>}
-                  {r.content}
+                  <span className="hand">{r.content}</span>
                 </p>
                 <p className="mt-1 text-xs text-muted">
                   {formatDate(r.created_at)} · {SOURCE_LABEL[r.source] ?? r.source}
