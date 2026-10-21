@@ -24,6 +24,11 @@ export type Compare = {
   overall: { aspects: Record<string, Rate> } & Rate;
 };
 
+export type Anomalies = {
+  since: string;
+  alerts: { aspect: string | null; mentions: number; negative: number; rate: number; baseline_rate: number; z: number }[];
+};
+
 export type Review = {
   id: number;
   source: string;

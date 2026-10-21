@@ -3,7 +3,7 @@
 import { InsightsPanel } from "@/components/insights-panel";
 import { useNegativeAlert } from "@/components/negative-alert";
 import { useStores } from "@/components/store-context";
-import { api, can, type AspectRow, type Review, type Summary } from "@/lib/api";
+import { api, can, type Anomalies, type AspectRow, type Review, type Summary } from "@/lib/api";
 import {
   ACCENT, ASPECT_LABEL, formatDate, formatNum, formatPct, SENTIMENT_COLOR, SENTIMENT_LABEL, SOURCE_LABEL,
 } from "@/lib/labels";
@@ -20,6 +20,7 @@ export default function DashboardPage() {
   const { store } = useStores();
   const [data, setData] = useState<Summary | null>(null);
   const [recent, setRecent] = useState<Review[] | null>(null);
+  const [anomalies, setAnomalies] = useState<Anomalies | null>(null);
   const [error, setError] = useState("");
 
   const load = useCallback(() => {
@@ -28,7 +29,8 @@ export default function DashboardPage() {
     Promise.all([
       api<Summary>(`/stores/${store.id}/dashboard`),
       api<Review[]>(`/stores/${store.id}/reviews?sentiment=negative&hidden=false&limit=3`),
-    ]).then(([s, r]) => { setData(s); setRecent(r); }, (e) => setError(e.message));
+      api<Anomalies>(`/stores/${store.id}/dashboard/anomalies`),
+    ]).then(([s, r, a]) => { setData(s); setRecent(r); setAnomalies(a); }, (e) => setError(e.message));
   }, [store]);
   useEffect(load, [load]);
 
@@ -58,6 +60,8 @@ export default function DashboardPage() {
         </p>
       )}
 
+      {anomalies && anomalies.alerts.length > 0 && <AnomalyStrip data={anomalies} />}
+
       {data && data.analyzed === 0 && (
         <div className="rounded-lg border border-dashed border-control px-4 py-3 text-sm text-muted">
           Chưa có đánh giá nào. Import file từ Google Maps hoặc in mã QR ở trang Cửa hàng để khách gửi góp ý.
@@ -78,6 +82,31 @@ export default function DashboardPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// Tỉ lệ chê 7 ngày qua tăng vọt so với 8 tuần trước: đặt trên cùng vì cần xử lý ngay, không đợi báo cáo tuần
+function AnomalyStrip({ data }: { data: Anomalies }) {
+  return (
+    <section aria-label="Cảnh báo bất thường" className="rounded-lg border-l-4 border-[#c8323c] bg-[#ffedea] px-4 py-3 text-[#831c1e]">
+      <h2 className="font-semibold">Bất thường trong 7 ngày qua</h2>
+      <ul className="mt-1 space-y-1 text-sm">
+        {data.alerts.map((a) => {
+          const href = `/reviews?sentiment=negative&date_from=${data.since}${a.aspect ? `&aspect=${a.aspect}` : ""}`;
+          return (
+            <li key={a.aspect ?? "all"} className="flex flex-wrap items-center gap-x-3">
+              <span>
+                {a.aspect
+                  ? <><b className="font-medium">{ASPECT_LABEL[a.aspect] ?? a.aspect}</b> bị chê {pct0(a.rate)} lượt nhắc</>
+                  : <><b className="font-medium">{pct0(a.rate)} đánh giá</b> là tiêu cực</>}
+                {" "}({a.negative}/{a.mentions}), thường chỉ {pct0(a.baseline_rate)}.
+              </span>
+              <Link href={href} className="tap font-medium underline">Xem đánh giá</Link>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

@@ -1,5 +1,5 @@
 from collections import Counter, defaultdict
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..models import Review, Store, counted
 from ..security import staff_store
+from ..services import anomaly
 from ..timeutil import as_utc, vn_date
 
 router = APIRouter(prefix="/stores/{store_id}/dashboard", tags=["dashboard"])
@@ -49,3 +50,8 @@ def summary(store: Store = Depends(staff_store), db: Session = Depends(get_db)):
         "trend": [{"week_start": w, **row(c)} for w, c in sorted(trend.items())],
         "aspects": sorted(aspect_rows, key=lambda x: x["total"], reverse=True),
     }
+
+
+@router.get("/anomalies")
+def anomalies(store: Store = Depends(staff_store), db: Session = Depends(get_db)):
+    return anomaly.detect(db, store.id, datetime.now(timezone.utc))

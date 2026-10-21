@@ -22,6 +22,7 @@ from ..db import SessionLocal
 from ..labels import ASPECT_VI
 from ..models import Review, Store, counted
 from ..timeutil import VN, as_utc, vn_day_start
+from . import anomaly
 
 log = logging.getLogger(__name__)
 OUTBOX = Path(__file__).resolve().parents[2] / "outbox"
@@ -58,8 +59,12 @@ def _stats(reviews: list[Review]) -> tuple[int, int, Counter]:
     return len(reviews), negative, aspects
 
 
+def _percent(x: float) -> str:
+    return f"{x * 100:.1f}%".replace(".", ",")
+
+
 def _pct(part: int, whole: int) -> str:
-    return f"{part / whole * 100:.1f}%".replace(".", ",") if whole else "—"
+    return _percent(part / whole) if whole else "—"
 
 
 def build(db: Session, store: Store, now: datetime) -> EmailMessage:
@@ -87,6 +92,10 @@ def build(db: Session, store: Store, now: datetime) -> EmailMessage:
     ]
     if rising:
         facts.append(f"Cần chú ý: {ASPECT_VI.get(rising, rising)} – {aspects[rising]} lượt chê (tuần trước đó: {paspects[rising]})")
+    for a in anomaly.detect(db, store.id, end)["alerts"]:
+        label = ASPECT_VI.get(a["aspect"], a["aspect"]) if a["aspect"] else "Tổng thể"
+        facts.append(f"Bất thường – {label}: tỉ lệ chê {_percent(a['rate'])} trong {a['mentions']} lượt nhắc "
+                     f"(8 tuần trước đó: {_percent(a['baseline_rate'])})")
     if headline:
         facts.append(f"Gợi ý từ AI (bản tóm tắt gần nhất): {headline}")
 
