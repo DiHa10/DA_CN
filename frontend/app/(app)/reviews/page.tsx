@@ -98,7 +98,7 @@ function Reviews() {
           const active = sentiment === value;
           return (
             <button key={value} onClick={() => setFilter("sentiment", value)} aria-pressed={active}
-              className={`-mb-px cursor-pointer border-b-2 pb-2.5 text-sm whitespace-nowrap transition-colors duration-150 ${
+              className={`-mb-px cursor-pointer border-b-2 pt-3 pb-2.5 text-sm md:pt-0 whitespace-nowrap transition-colors duration-150 ${
                 active ? "border-ink font-medium text-ink" : "border-transparent text-muted hover:text-ink"}`}>
               {label}
             </button>

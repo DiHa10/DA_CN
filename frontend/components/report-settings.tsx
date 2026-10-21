@@ -43,7 +43,7 @@ export function ReportSettings({ store, onSaved }: { store: Store; onSaved: () =
         <label htmlFor={id} className="label">Email nhận báo cáo</label>
         <input id={id} type="email" maxLength={255} className="input" value={email} onChange={(e) => setEmail(e.target.value)} />
       </div>
-      <label className="flex cursor-pointer items-center gap-2 text-sm">
+      <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm md:min-h-0">
         <input type="checkbox" className="size-4 accent-[var(--accent)]" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
         Gửi mỗi sáng thứ Hai lúc 8:00
       </label>

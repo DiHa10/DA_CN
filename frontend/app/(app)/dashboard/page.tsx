@@ -149,7 +149,7 @@ function AspectBoard({ aspects }: { aspects: AspectRow[] }) {
             return (
               <li key={a.aspect} className="border-t border-rule px-5 py-3 first:border-t-0">
                 <div className="grid grid-cols-[116px_minmax(0,1fr)_44px] items-center gap-3 sm:gap-4 sm:grid-cols-[132px_minmax(0,1fr)_72px]">
-                  <Link href={`/reviews?aspect=${a.aspect}&sentiment=negative`} className="truncate font-medium hover:underline">
+                  <Link href={`/reviews?aspect=${a.aspect}&sentiment=negative`} className="tap truncate font-medium hover:underline">
                     {label} <span className="num font-normal text-muted">{a.total}</span>
                   </Link>
                   <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-sm" role="img"
@@ -193,7 +193,10 @@ function Trend({ data }: { data: Summary }) {
     <section className="panel px-5 pt-4 pb-3">
       <h2 className="text-base font-semibold">Tỉ lệ đánh giá tiêu cực theo tuần</h2>
       <p className="text-xs text-muted">Đường nét đứt: trung bình toàn bộ {formatNum(avg)}%</p>
-      <div className="mt-3 h-[200px]">
+      {/* biểu đồ SVG không đọc được bằng trình đọc màn hình: đưa số liệu chính thành một câu */}
+      <div className="mt-3 h-[200px]" role="img" aria-label={points.length
+        ? `Tỉ lệ tiêu cực theo tuần, từ ${formatNum(points[0].rate)}% tuần ${points[0].label} đến ${formatNum(points.at(-1)!.rate)}% tuần ${points.at(-1)!.label}; cao nhất ${formatNum(Math.max(...points.map((p) => p.rate)))}%`
+        : "Chưa có dữ liệu theo tuần"}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={points} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
             <CartesianGrid stroke="#e4e9f2" vertical={false} />

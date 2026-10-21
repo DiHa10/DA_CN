@@ -39,7 +39,7 @@ export function InsightsPanel({ storeId }: { storeId: number }) {
     <section aria-busy={busy}>
       <div className="mb-2 flex items-center justify-between gap-3">
         <h2 className="text-base font-semibold">Gợi ý cải thiện</h2>
-        <button className="cursor-pointer text-sm font-medium text-accent hover:underline disabled:cursor-wait disabled:text-muted disabled:no-underline"
+        <button className="tap cursor-pointer text-sm font-medium text-accent hover:underline disabled:cursor-wait disabled:text-muted disabled:no-underline"
           onClick={regenerate} disabled={busy}>
           {busy ? "AI đang đọc…" : insight ? "Cập nhật" : "Tạo gợi ý"}
         </button>

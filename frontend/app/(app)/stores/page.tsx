@@ -69,7 +69,7 @@ export default function StoresPage() {
           <Fragment key={s.id}>
           <SectionRow title={s.name} description={<>
             <p>In mã QR đặt ở bàn hoặc quầy thu ngân. Khách quét, chấm sao và viết góp ý; hệ thống tự phân tích.</p>
-            <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 break-all font-medium text-accent hover:underline">
+            <a href={url} target="_blank" rel="noreferrer" className="tap inline-flex items-center gap-1 break-all font-medium text-accent hover:underline">
               {url} <ExternalLink aria-hidden strokeWidth={1.5} className="size-3.5 flex-none" />
             </a>
           </>}>
@@ -81,7 +81,7 @@ export default function StoresPage() {
               )}
               <div className="flex flex-col items-start gap-3">
                 <button className="btn" onClick={() => downloadQr(s)}>Tải mã QR (PNG)</button>
-                <button className="cursor-pointer text-sm font-medium text-negative hover:underline" onClick={() => remove(s)}>
+                <button className="tap cursor-pointer text-sm font-medium text-negative hover:underline" onClick={() => remove(s)}>
                   Xóa cửa hàng
                 </button>
               </div>

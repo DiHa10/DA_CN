@@ -54,17 +54,17 @@ body {
     @apply rounded-lg border border-border bg-surface;
   }
   .btn {
-    @apply inline-flex h-8 cursor-pointer items-center justify-center gap-2 rounded-md border border-control bg-surface px-3 text-sm font-medium whitespace-nowrap text-ink transition-colors duration-150 hover:bg-raised active:bg-active disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex h-11 md:h-8 cursor-pointer items-center justify-center gap-2 rounded-md border border-control bg-surface px-3 text-sm font-medium whitespace-nowrap text-ink transition-colors duration-150 hover:bg-raised active:bg-active disabled:cursor-not-allowed disabled:opacity-60;
   }
   .btn-primary {
     /* dùng chung với .btn: class="btn btn-primary" — nút chính màu gần đen, mỗi màn hình một nút */
     @apply border-primary bg-primary text-white hover:bg-[#2b3870] active:bg-[#141c3d];
   }
   .input {
-    @apply h-10 w-full rounded-md border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted;
+    @apply h-11 md:h-10 w-full rounded-md border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted;
   }
   .control {
-    @apply h-8 rounded-md border border-control bg-surface px-2 text-sm text-ink;
+    @apply h-11 md:h-8 rounded-md border border-control bg-surface px-2 text-sm text-ink;
   }
   .label {
     @apply mb-2 block text-sm font-medium;
@@ -77,9 +77,16 @@ body {
   .notebook {
     border-left: 2px solid var(--margin);
   }
-  :focus-visible {
-    @apply outline-2 outline-offset-2 outline-accent;
+  /* link chữ trên điện thoại: nới vùng bấm lên 44px mà không đẩy bố cục */
+  .tap {
+    @apply -mx-3 -my-3.5 inline-block px-3 py-3.5 md:mx-0 md:my-0 md:px-0 md:py-0;
   }
+}
+
+/* viết ngoài @layer: Tailwind v4 bỏ selector không có class trong @layer components, viền focus từng biến mất */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
