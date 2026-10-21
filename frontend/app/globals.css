@@ -75,7 +75,7 @@ body {
   }
   /* đường lề đỏ của vở bên trái các khối chứa lời khách */
   .notebook {
-    box-shadow: inset 2px 0 0 var(--margin);
+    border-left: 2px solid var(--margin);
   }
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-accent;
