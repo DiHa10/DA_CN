@@ -1,5 +1,6 @@
 "use client";
 
+import { HoldButton } from "@/components/hold-button";
 import { MembersSettings } from "@/components/members-settings";
 import { ReportSettings } from "@/components/report-settings";
 import { SectionRow } from "@/components/section-row";
@@ -39,7 +40,6 @@ export default function StoresPage() {
   }
 
   async function remove(s: Store) {
-    if (!confirm(`Xóa cửa hàng "${s.name}" và toàn bộ đánh giá của nó? Không thể hoàn tác.`)) return;
     try {
       await api(`/stores/${s.id}`, { method: "DELETE" });
       await reload();
@@ -83,9 +83,10 @@ export default function StoresPage() {
               <div className="flex flex-col items-start gap-3">
                 <button className="btn" onClick={() => downloadQr(s)}>Tải mã QR (PNG)</button>
                 {s.role === "owner" && (
-                  <button className="tap cursor-pointer text-sm font-medium text-negative hover:underline" onClick={() => remove(s)}>
-                    Xóa cửa hàng
-                  </button>
+                  <HoldButton onConfirm={() => remove(s)}
+                    confirmText={`Xóa cửa hàng "${s.name}" và toàn bộ đánh giá của nó? Không thể hoàn tác.`}>
+                    Giữ để xóa cửa hàng
+                  </HoldButton>
                 )}
               </div>
             </div>

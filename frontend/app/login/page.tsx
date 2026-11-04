@@ -2,14 +2,16 @@
 
 import { Wordmark } from "@/components/mark";
 import { errorMessage } from "@/lib/api";
+import { shake } from "@/lib/motion";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const panel = useRef<HTMLDivElement>(null);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -22,7 +24,10 @@ export default function LoginPage() {
       body: JSON.stringify({ mode, email: form.get("email"), password: form.get("password") }),
     });
     setLoading(false);
-    if (!res.ok) return setError(errorMessage(await res.json().catch(() => ({})), res.status));
+    if (!res.ok) {
+      shake(panel.current);
+      return setError(errorMessage(await res.json().catch(() => ({})), res.status));
+    }
     router.push(mode === "register" ? "/stores" : "/dashboard");
     router.refresh();
   }
@@ -42,7 +47,7 @@ export default function LoginPage() {
           Đọc mọi đánh giá từ Google Maps và mã QR tại quán, biết ngay món nào được khen và điều gì cần sửa.
         </p>
       </div>
-      <div style={{ animationDelay: "450ms" }} className="anim-rise on-light w-full rounded-lg bg-surface p-6 text-ink sm:p-8">
+      <div ref={panel} style={{ animationDelay: "450ms" }} className="anim-rise on-light w-full rounded-lg bg-surface p-6 text-ink sm:p-8">
         <h1 className="title">{isLogin ? "Đăng nhập" : "Tạo tài khoản"}</h1>
         <p className="mt-1 mb-6 text-sm text-muted">
           {isLogin ? "Xem khách đang khen và chê điều gì ở quán của bạn." : "Dành cho chủ quán. Bạn sẽ tạo cửa hàng đầu tiên ngay sau bước này."}

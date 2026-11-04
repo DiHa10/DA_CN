@@ -1,6 +1,7 @@
 "use client";
 
 import { InsightsPanel } from "@/components/insights-panel";
+import { Skeleton } from "@/components/skeleton";
 import { useNegativeAlert } from "@/components/negative-alert";
 import { useStores } from "@/components/store-context";
 import { api, can, type Anomalies, type AspectRow, type Review, type Summary } from "@/lib/api";
@@ -61,6 +62,13 @@ export default function DashboardPage() {
       )}
 
       {anomalies && anomalies.alerts.length > 0 && <AnomalyStrip data={anomalies} />}
+
+      {!data && !error && (
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_384px]">
+          <div className="panel p-5"><Skeleton lines={8} /></div>
+          <div className="panel p-5"><Skeleton lines={5} /></div>
+        </div>
+      )}
 
       {data && data.analyzed === 0 && (
         <div className="rounded-lg border border-dashed border-control px-4 py-3 text-sm text-muted">

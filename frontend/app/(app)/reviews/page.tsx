@@ -3,12 +3,13 @@
 import { useNegativeAlert } from "@/components/negative-alert";
 import { ReplyBox } from "@/components/reply-box";
 import { AspectChip, SentimentBadge } from "@/components/sentiment-badge";
+import { Skeleton } from "@/components/skeleton";
 import { useStores } from "@/components/store-context";
 import { api, can, json, type Review } from "@/lib/api";
 import { ASPECT_LABEL, formatDate, SENTIMENT_LABEL, SOURCE_LABEL, SPAM_LABEL } from "@/lib/labels";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 const PAGE = 50;
 const TABS = [["", "Tất cả"], ["negative", SENTIMENT_LABEL.negative], ["neutral", SENTIMENT_LABEL.neutral], ["positive", SENTIMENT_LABEL.positive]];
@@ -103,18 +104,7 @@ function Reviews() {
         </div>
       </header>
 
-      <nav aria-label="Lọc theo cảm xúc" className="mt-5 flex gap-6 overflow-x-auto overflow-y-hidden border-b border-border">
-        {TABS.map(([value, label]) => {
-          const active = sentiment === value;
-          return (
-            <button key={value} onClick={() => setFilter("sentiment", value)} aria-pressed={active}
-              className={`-mb-px cursor-pointer border-b-2 pt-3 pb-2.5 text-sm md:pt-0 whitespace-nowrap transition-colors duration-150 ${
-                active ? "border-ink font-medium text-ink" : "border-transparent text-muted hover:text-ink"}`}>
-              {label}
-            </button>
-          );
-        })}
-      </nav>
+      <Tabs value={sentiment} onChange={(v) => setFilter("sentiment", v)} />
 
       <div className="mt-5 flex flex-wrap items-center gap-2">
         {select("aspect", "Khía cạnh", ASPECT_LABEL)}
@@ -138,7 +128,7 @@ function Reviews() {
       </div>
 
       {error && <p role="alert" className="mt-4 text-sm">Không tải được đánh giá: {error}</p>}
-      {!reviews && !error && <p className="mt-4 text-muted">Đang tải…</p>}
+      {!reviews && !error && <Skeleton lines={6} className="mt-6" />}
       {reviews?.length === 0 && (
         <p className="mt-4 rounded-lg border border-dashed border-control px-4 py-3 text-sm text-muted">Không có đánh giá nào khớp bộ lọc.</p>
       )}
@@ -209,5 +199,37 @@ function Reviews() {
         </div>
       )}
     </div>
+  );
+}
+
+// Tab cảm xúc: một gạch dưới duy nhất trượt tới tab đang chọn (đo vị trí, di chuyển bằng transform)
+function Tabs({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const nav = useRef<HTMLElement>(null);
+  const [bar, setBar] = useState<{ x: number; w: number } | null>(null);
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = nav.current?.querySelector<HTMLElement>("[aria-pressed=true]");
+      if (el) setBar({ x: el.offsetLeft, w: el.offsetWidth });
+    };
+    measure();
+    const ro = new ResizeObserver(measure); // font tải xong hoặc đổi cỡ màn hình làm tab đổi rộng
+    if (nav.current) ro.observe(nav.current);
+    return () => ro.disconnect();
+  }, [value]);
+  return (
+    <nav ref={nav} aria-label="Lọc theo cảm xúc" className="relative mt-5 flex gap-6 overflow-x-auto overflow-y-hidden border-b border-border">
+      {TABS.map(([v, label]) => {
+        const active = value === v;
+        return (
+          <button key={v} onClick={() => onChange(v)} aria-pressed={active}
+            className={`cursor-pointer pt-3 pb-2.5 text-sm md:pt-0 whitespace-nowrap transition-colors duration-150 ${
+              active ? "font-medium text-ink" : "text-muted hover:text-ink"}`}>
+            {label}
+          </button>
+        );
+      })}
+      <span aria-hidden className={`absolute bottom-0 left-0 h-0.5 w-px origin-left bg-ink ${bar ? "transition-transform duration-300 ease-[var(--ease)]" : "opacity-0"}`}
+        style={bar ? { transform: `translateX(${bar.x}px) scaleX(${bar.w})` } : undefined} />
+    </nav>
   );
 }

@@ -2,6 +2,7 @@
 
 import { api, json, type Review } from "@/lib/api";
 import { formatDate } from "@/lib/labels";
+import { Check, Copy } from "lucide-react";
 import { Busy } from "./dots";
 import { useRef, useState } from "react";
 
@@ -12,6 +13,7 @@ export function ReplyBox({ storeId, review, onSaved }: { storeId: number; review
   const [busy, setBusy] = useState<"draft" | "save" | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [saved, setSaved] = useState(false); // vừa lưu xong: hiện dấu tích ngắn, vì ô soạn đóng lại ngay
   const base = `/stores/${storeId}/reviews/${review.id}`;
   // đóng ô soạn thì trả focus về nút "Trả lời"/"Sửa", không để người dùng bàn phím bị rơi về đầu trang
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -39,6 +41,8 @@ export function ReplyBox({ storeId, review, onSaved }: { storeId: number; review
     run("save", async () => {
       onSaved(await api<Review>(`${base}/reply`, json("PUT", { reply_text: text })));
       close();
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
     });
 
   async function copy() {
@@ -54,11 +58,18 @@ export function ReplyBox({ storeId, review, onSaved }: { storeId: number; review
   if (!editing) {
     return review.reply_text ? (
       <div className="mt-2 rounded-md bg-raised px-3 py-2 text-sm">
-        <p className="text-xs text-muted">Quán đã trả lời · {formatDate(review.replied_at!)}</p>
+        <p className="flex items-center gap-2 text-xs text-muted">
+          Quán đã trả lời · {formatDate(review.replied_at!)}
+          {saved && <span role="status" className="anim-rise inline-flex items-center gap-1 font-medium text-positive"><Check aria-hidden className="draw size-3.5" />Đã lưu</span>}
+        </p>
         <p className="mt-0.5 whitespace-pre-line">{review.reply_text}</p>
         <div className="mt-1.5 flex gap-6 text-xs font-medium">
           <button ref={toggleRef} className="tap cursor-pointer text-accent hover:underline" onClick={() => { setText(review.reply_text ?? ""); setEditing(true); }}>Sửa</button>
-          <button className="tap cursor-pointer text-accent hover:underline" onClick={copy}>{copied ? "Đã sao chép" : "Sao chép"}</button>
+          <button className="tap inline-flex cursor-pointer items-center gap-1 text-accent hover:underline" onClick={copy}>
+            {copied
+              ? <><Check key="done" aria-hidden className="swap-in size-3.5" />Đã sao chép</>
+              : <><Copy key="copy" aria-hidden className="swap-in size-3.5" />Sao chép</>}
+          </button>
         </div>
         {error && <p role="alert" className="mt-1 text-xs text-negative">{error}</p>}
       </div>
@@ -77,7 +88,7 @@ export function ReplyBox({ storeId, review, onSaved }: { storeId: number; review
         placeholder="Viết câu trả lời, hoặc bấm “Gợi ý bằng AI”" className="input h-auto py-2" />
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <button className="btn" onClick={suggest} disabled={busy !== null}>{busy === "draft" ? <Busy text="AI đang viết" /> : "Gợi ý bằng AI"}</button>
-        <button className="btn" onClick={save} disabled={busy !== null}>{busy === "save" ? "Đang lưu…" : "Lưu"}</button>
+        <button className="btn" onClick={save} disabled={busy !== null}>{busy === "save" ? <Busy text="Đang lưu" /> : "Lưu"}</button>
         <button className="tap cursor-pointer px-2 text-sm text-muted hover:text-ink" onClick={close}>Hủy</button>
       </div>
       {error && <p role="alert" className="mt-1 text-sm text-negative">{error}</p>}

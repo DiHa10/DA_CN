@@ -276,6 +276,41 @@ body {
   animation: draw 0.4s 0.15s var(--ease) forwards;
 }
 
+/* biểu tượng đổi chỗ (sao chép → đã chép): cái mới xoay nhẹ và hiện lên */
+@keyframes swap-in {
+  from { opacity: 0; transform: scale(0.6) rotate(-20deg); }
+}
+.swap-in {
+  animation: swap-in 0.25s var(--ease) both;
+}
+/* khung xương: vệt sáng quét qua */
+@keyframes shimmer {
+  to { background-position: -200% 0; }
+}
+.skeleton {
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--active) 25%, var(--raised) 50%, var(--active) 75%) 0 0 / 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+/* nút giữ để xóa: thanh đỏ chạy đầy trong --hold, thả sớm thì rút về nhanh */
+.hold {
+  @apply relative isolate cursor-pointer overflow-hidden rounded-sm border border-negative px-3 py-2 text-sm font-medium text-negative select-none;
+}
+.hold::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--negative) 16%, transparent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s ease-out;
+}
+.hold.holding::before {
+  transform: scaleX(1);
+  transition: transform var(--hold) linear;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -2,8 +2,10 @@
 
 import { api, type Insight } from "@/lib/api";
 import { ASPECT_LABEL } from "@/lib/labels";
+import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { Busy } from "./dots";
+import { Skeleton } from "./skeleton";
 import { useCallback, useEffect, useState } from "react";
 
 const SHOWN = 3; // cột phải dashboard: 3 khía cạnh nhiều lượt chê nhất, phần còn lại mở khi cần
@@ -40,6 +42,29 @@ export function InsightsPanel({ storeId, canRegenerate }: { storeId: number; can
   }, [storeId]);
 
   const c = insight?.content;
+  const item = (a: NonNullable<typeof c>["aspects"][number], i: number) => (
+    <li key={a.aspect} className={`px-4 py-3 ${i ? "border-t border-rule" : ""}`}>
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="font-medium">{ASPECT_LABEL[a.aspect] ?? a.aspect}</span>
+        {/* cùng cửa sổ ngày và bỏ review đã ẩn như lúc AI đọc, để số review mở ra khớp số lượt chê */}
+        <Link href={`/reviews?aspect=${a.aspect}&sentiment=negative&hidden=false&date_from=${since(insight!.generated_at, c!.window_days)}`}
+          className="tap num text-xs whitespace-nowrap text-accent hover:underline">
+          {a.mentions} lượt chê
+        </Link>
+        {i === 0 && (
+          <span className="sign ml-auto flex-none whitespace-nowrap">
+            Ưu tiên
+          </span>
+        )}
+      </p>
+      <p className="mt-1">{a.problem}</p>
+      {a.actions.length > 0 && (
+        <ul className="mt-1.5 list-disc space-y-0.5 pl-5 text-[13px] text-muted">
+          {a.actions.map((x) => <li key={x}>{x}</li>)}
+        </ul>
+      )}
+    </li>
+  );
   return (
     // nằm ở cột phải dashboard: tiêu đề ngoài khung như "Tiêu cực gần đây"
     <section aria-busy={busy}>
@@ -59,40 +84,25 @@ export function InsightsPanel({ storeId, canRegenerate }: { storeId: number; can
             : `AI đọc đánh giá tiêu cực 30 ngày qua và đề xuất việc nên làm, mất khoảng nửa phút`}
         </p>
         {error && <p role="alert" className="px-4 pt-3 text-sm text-negative">{error}</p>}
-        {insight === undefined && !error && <p className="px-4 py-3 text-sm text-muted">Đang tải…</p>}
+        {insight === undefined && !error && <Skeleton lines={4} className="px-4 py-4" />}
         {insight === null && !error && <p className="px-4 py-3 text-sm text-muted">{canRegenerate ? "Chưa có gợi ý. Bấm “Tạo gợi ý”." : "Chưa có gợi ý. Quản lý hoặc chủ quán tạo gợi ý."}</p>}
 
         {c && (
-          <ul>
-            {(showAll ? c.aspects : c.aspects.slice(0, SHOWN)).map((a, i) => (
-              <li key={a.aspect} className="border-t border-rule px-4 py-3 first:border-t-0">
-                <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="font-medium">{ASPECT_LABEL[a.aspect] ?? a.aspect}</span>
-                  {/* cùng cửa sổ ngày và bỏ review đã ẩn như lúc AI đọc, để số review mở ra khớp số lượt chê */}
-                  <Link href={`/reviews?aspect=${a.aspect}&sentiment=negative&hidden=false&date_from=${since(insight!.generated_at, c.window_days)}`}
-                    className="tap num text-xs whitespace-nowrap text-accent hover:underline">
-                    {a.mentions} lượt chê
-                  </Link>
-                  {i === 0 && (
-                    <span className="sign ml-auto flex-none whitespace-nowrap">
-                      Ưu tiên
-                    </span>
-                  )}
-                </p>
-                <p className="mt-1">{a.problem}</p>
-                {a.actions.length > 0 && (
-                  <ul className="mt-1.5 list-disc space-y-0.5 pl-5 text-[13px] text-muted">
-                    {a.actions.map((x) => <li key={x}>{x}</li>)}
-                  </ul>
-                )}
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul>{c.aspects.slice(0, SHOWN).map(item)}</ul>
+            {c.aspects.length > SHOWN && (
+              <div inert={!showAll}
+                className={`grid transition-[grid-template-rows] duration-300 ease-[var(--ease)] ${showAll ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+                <ul className="min-h-0 overflow-hidden">{c.aspects.slice(SHOWN).map((a, i) => item(a, i + SHOWN))}</ul>
+              </div>
+            )}
+          </>
         )}
         {c && c.aspects.length > SHOWN && (
           <div className="border-t border-rule p-3">
             <button className="btn w-full" onClick={() => setShowAll(!showAll)} aria-expanded={showAll}>
               {showAll ? "Thu gọn" : `Xem thêm ${c.aspects.length - SHOWN} khía cạnh`}
+              <ChevronDown aria-hidden className={`size-4 transition-transform duration-300 ${showAll ? "rotate-180" : ""}`} />
             </button>
           </div>
         )}

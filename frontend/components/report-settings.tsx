@@ -2,7 +2,9 @@
 
 import { StatusLine } from "@/components/section-row";
 import { api, json, type Store } from "@/lib/api";
+import { Check } from "lucide-react";
 import { useState } from "react";
+import { Busy } from "./dots";
 
 type Status = { ok: boolean; text: string } | null;
 
@@ -12,6 +14,7 @@ export function ReportSettings({ store, onSaved }: { store: Store; onSaved: () =
   const [enabled, setEnabled] = useState(store.weekly_report);
   const [busy, setBusy] = useState<"save" | "test" | null>(null);
   const [status, setStatus] = useState<Status>(null);
+  const [saved, setSaved] = useState(false);
 
   async function run(kind: "save" | "test", fn: () => Promise<string>) {
     setBusy(kind);
@@ -29,6 +32,8 @@ export function ReportSettings({ store, onSaved }: { store: Store; onSaved: () =
     run("save", async () => {
       await api(`/stores/${store.id}/report-settings`, json("PUT", { report_email: email.trim() || null, weekly_report: enabled }));
       await onSaved();
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1600);
       return enabled ? "Đã lưu. Báo cáo gửi lúc 8:00 sáng thứ Hai hằng tuần." : "Đã lưu. Báo cáo tuần đang tắt.";
     });
   };
@@ -48,10 +53,12 @@ export function ReportSettings({ store, onSaved }: { store: Store; onSaved: () =
         Gửi mỗi sáng thứ Hai lúc 8:00
       </label>
       <div className="flex flex-wrap items-center gap-2">
-        <button className="btn" disabled={busy !== null}>{busy === "save" ? "Đang lưu…" : "Lưu"}</button>
+        <button className="btn" disabled={busy !== null}>
+          {busy === "save" ? <Busy text="Đang lưu" /> : saved ? <><Check aria-hidden className="draw size-4" />Đã lưu</> : "Lưu"}
+        </button>
         <button type="button" className="btn" onClick={sendTest} disabled={busy !== null || !store.report_email}
           title={store.report_email ? undefined : "Lưu email trước"}>
-          {busy === "test" ? "Đang gửi…" : "Gửi thử báo cáo tuần trước"}
+          {busy === "test" ? <Busy text="Đang gửi" /> : "Gửi thử báo cáo tuần trước"}
         </button>
       </div>
       <StatusLine status={status} />

@@ -1,9 +1,10 @@
 "use client";
 
 import { api, json } from "@/lib/api";
+import { shake } from "@/lib/motion";
 import { Check, Star } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const RATING_WORD = ["", "Rất tệ", "Chưa tốt", "Bình thường", "Tốt", "Rất tốt"];
 
@@ -12,6 +13,8 @@ export default function PublicReviewPage() {
   const [storeName, setStoreName] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [rating, setRating] = useState(0);
+  const [hover, setHover] = useState(0); // rê chuột: xem trước số sao trước khi bấm
+  const form = useRef<HTMLFormElement>(null);
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
@@ -34,6 +37,7 @@ export default function PublicReviewPage() {
       setDone(true);
     } catch (err) {
       setError((err as Error).message);
+      shake(form.current);
     }
     setSending(false);
   }
@@ -54,22 +58,22 @@ export default function PublicReviewPage() {
             <p style={{ animationDelay: "380ms" }} className="anim-rise mt-2 text-muted">{storeName} đã nhận được góp ý của bạn và sẽ đọc từng ý một.</p>
           </div>
         ) : (
-          <form onSubmit={submit}>
+          <form ref={form} onSubmit={submit}>
             <p className="text-[13px] font-medium tracking-[0.08em] text-muted uppercase">Góp ý cho</p>
             <h1 className="mt-2 text-[34px] leading-[1.1] font-normal tracking-[0.05em] text-gold sm:text-[46px]">{storeName}</h1>
 
             <fieldset className="mt-10">
               <legend className="label">Bạn thấy bữa ăn hôm nay thế nào?</legend>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1" onMouseLeave={() => setHover(0)}>
                 {[1, 2, 3, 4, 5].map((n) => (
-                  <label key={n} className="-ml-1.5 cursor-pointer rounded-md p-1.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent">
+                  <label key={n} onMouseEnter={() => setHover(n)} className="-ml-1.5 cursor-pointer rounded-md p-1.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent">
                     <input type="radio" name="rating" value={n} className="sr-only" checked={rating === n} onChange={() => setRating(n)} />
                     <Star aria-hidden strokeWidth={1.5}
-                      className={`size-9 transition-colors duration-150 ${n <= rating ? "fill-star text-star" : "text-on-dark-muted"} ${n === rating ? "pop" : ""}`} />
+                      className={`size-9 transition-colors duration-150 ${n <= (hover || rating) ? "fill-star text-star" : "text-on-dark-muted"} ${n === rating ? "pop" : ""}`} />
                     <span className="sr-only">{n} sao, {RATING_WORD[n]}</span>
                   </label>
                 ))}
-                <span aria-hidden className="ml-2 text-sm text-muted">{RATING_WORD[rating]}</span>
+                <span aria-hidden className="ml-2 text-sm text-muted">{RATING_WORD[hover || rating]}</span>
               </div>
             </fieldset>
 
