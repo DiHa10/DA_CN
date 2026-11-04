@@ -61,9 +61,9 @@ function Sidebar() {
   const nav = useNav();
   return (
     <aside className="on-dark hidden md:sticky md:top-0 md:row-span-2 md:flex md:h-screen md:flex-col md:px-4">
-      <div className="flex h-14 items-center px-2">
+      <Link href="/gioi-thieu" aria-label="Quán Nghe: cách hoạt động" className="flex h-14 items-center px-2">
         <Wordmark />
-      </div>
+      </Link>
       <nav aria-label="Điều hướng chính" className="mt-6 flex flex-col gap-1">
         {nav.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);
@@ -99,7 +99,7 @@ function TopBar() {
   const logout = useLogout();
   return (
     <header className="on-dark sticky top-0 z-10 flex h-14 items-center gap-3 px-4 md:static md:px-8">
-      <span className="md:hidden"><Mark /></span>
+      <Link href="/gioi-thieu" aria-label="Quán Nghe: cách hoạt động" className="flex size-11 items-center md:hidden"><Mark /></Link>
       {stores && stores.length > 0 && (
         <>
           <label htmlFor="store-select" className="sr-only">Cửa hàng</label>

@@ -85,6 +85,10 @@ class ReviewIn(BaseModel):
     author: str | None = Field(default=None, max_length=200)
 
 
+class DemoIn(BaseModel):
+    text: str = Field(min_length=2, max_length=300)
+
+
 class AspectOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     aspect: str

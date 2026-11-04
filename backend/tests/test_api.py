@@ -143,3 +143,13 @@ def test_rate_limiter_forgets_expired_keys(monkeypatch):
     for i in range(SlidingWindow.SWEEP_EVERY * 3):
         limiter.hit(f"ip-gia-{i}")  # mỗi lượt một IP giả, không bao giờ quay lại
     assert len(limiter._hits) < SlidingWindow.SWEEP_EVERY  # không giữ cả 3072 khóa
+
+
+def test_public_analyze_demo(client):
+    r = client.post("/public/analyze", json={"text": "Phở ngon nhưng phục vụ chậm"})
+    assert r.status_code == 200
+    assert r.json()["aspects"] == {"food": "positive", "service": "negative"}
+    assert client.post("/public/analyze", json={"text": "x" * 301}).status_code == 422
+    for _ in range(19):
+        client.post("/public/analyze", json={"text": "Ngon"})
+    assert client.post("/public/analyze", json={"text": "Ngon"}).status_code == 429  # 20 lần/phút mỗi IP

@@ -38,6 +38,7 @@ app.add_middleware(
 )
 for r in (auth, stores, reviews, public, dashboard, insights):
     app.include_router(r.router)
+app.include_router(public.demo)
 
 
 @app.get("/health")

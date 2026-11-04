@@ -20,7 +20,7 @@ def client():
     Base.metadata.drop_all(engine)
     with engine.begin() as c:
         c.exec_driver_sql("DROP TABLE IF EXISTS alembic_version")
-    for limiter in (public.per_ip, public.per_store, auth.failed_logins, insights.per_store,
+    for limiter in (public.per_ip, public.per_store, public.demo_per_ip, public.demo_all, auth.failed_logins, insights.per_store,
                     reviews.draft_limit, stores.test_limit):
         limiter._hits.clear()
     with TestClient(app) as c:

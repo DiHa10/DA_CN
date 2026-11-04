@@ -5,9 +5,10 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..models import Review, Store
 from ..ratelimit import SlidingWindow
-from ..schemas import PublicStore, ReviewIn
+from ..schemas import DemoIn, PublicStore, ReviewIn
 from ..services import spam
 from ..services.analysis import analyze_reviews
+from ..services.nlp import analyze_batch
 
 router = APIRouter(prefix="/public/stores", tags=["public"])
 
@@ -49,3 +50,18 @@ def submit_review(slug: str, body: ReviewIn, request: Request, tasks: Background
     db.commit()
     tasks.add_task(analyze_reviews, [review.id])
     return {"ok": True}
+
+
+# Thử trực tiếp ở trang giới thiệu: phân tích một câu, không lưu gì. Mỗi lần gọi chạy model, nên chặn theo IP
+# và thêm trần chung (IP giả qua X-Forwarded-For vẫn không làm nghẽn model).
+demo = APIRouter(prefix="/public", tags=["public"])
+demo_per_ip = SlidingWindow(20, 60, "Thử quá nhiều, đợi 1 phút rồi thử tiếp")
+demo_all = SlidingWindow(120, 60, "Đang có nhiều người thử, đợi ít phút rồi thử tiếp")
+
+
+@demo.post("/analyze")
+def analyze_demo(body: DemoIn, request: Request):
+    demo_per_ip.hit(_client_ip(request))
+    demo_all.hit("all")
+    result = analyze_batch([body.text])[0]
+    return {"sentiment": result["sentiment"], "aspects": result["aspects"]}

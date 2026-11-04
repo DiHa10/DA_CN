@@ -3,6 +3,7 @@
 import { Wordmark } from "@/components/mark";
 import { errorMessage } from "@/lib/api";
 import { shake } from "@/lib/motion";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
@@ -35,7 +36,7 @@ export default function LoginPage() {
   const isLogin = mode === "login";
   return (
     <main className="on-dark flex min-h-screen flex-col px-5 py-6 md:px-12">
-      <Wordmark />
+      <Link href="/gioi-thieu" aria-label="Quán Nghe: cách hoạt động" className="w-fit"><Wordmark /></Link>
       <div className="mx-auto my-auto grid w-full max-w-5xl items-center gap-10 py-10 md:grid-cols-[1fr_400px] md:gap-16">
       <div>
         {/* chữ lớn vàng đồng trên nền tối, như biển hiệu sáng đèn */}
