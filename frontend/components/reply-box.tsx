@@ -2,6 +2,7 @@
 
 import { api, json, type Review } from "@/lib/api";
 import { formatDate } from "@/lib/labels";
+import { Busy } from "./dots";
 import { useRef, useState } from "react";
 
 // Trả lời một review: AI gợi ý nháp, chủ quán sửa rồi lưu; sao chép để dán lên Google Maps.
@@ -70,12 +71,12 @@ export function ReplyBox({ storeId, review, onSaved }: { storeId: number; review
 
   const id = `reply-${review.id}`;
   return (
-    <div className="mt-2">
+    <div className="anim-rise mt-2">
       <label htmlFor={id} className="sr-only">Câu trả lời cho đánh giá</label>
       <textarea id={id} autoFocus rows={3} maxLength={2000} value={text} onChange={(e) => setText(e.target.value)}
         placeholder="Viết câu trả lời, hoặc bấm “Gợi ý bằng AI”" className="input h-auto py-2" />
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        <button className="btn" onClick={suggest} disabled={busy !== null}>{busy === "draft" ? "AI đang viết…" : "Gợi ý bằng AI"}</button>
+        <button className="btn" onClick={suggest} disabled={busy !== null}>{busy === "draft" ? <Busy text="AI đang viết" /> : "Gợi ý bằng AI"}</button>
         <button className="btn" onClick={save} disabled={busy !== null}>{busy === "save" ? "Đang lưu…" : "Lưu"}</button>
         <button className="tap cursor-pointer px-2 text-sm text-muted hover:text-ink" onClick={close}>Hủy</button>
       </div>

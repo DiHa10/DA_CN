@@ -35,13 +35,14 @@ export default function LoginPage() {
       <div>
         {/* chữ lớn vàng đồng trên nền tối, như biển hiệu sáng đèn */}
         <p className="text-[44px] leading-[1.02] font-normal tracking-[0.06em] text-gold uppercase md:text-[68px]">
-          Khách<br />nói gì?
+          <span className="line-mask"><span>Khách</span></span>
+          <span className="line-mask"><span style={{ animationDelay: "120ms" }}>nói gì?</span></span>
         </p>
-        <p className="mt-5 max-w-md text-[17px] leading-[1.45] tracking-[0.02em] text-cream md:text-[19px]">
+        <p style={{ animationDelay: "350ms" }} className="anim-rise mt-5 max-w-md text-[17px] leading-[1.45] tracking-[0.02em] text-cream md:text-[19px]">
           Đọc mọi đánh giá từ Google Maps và mã QR tại quán, biết ngay món nào được khen và điều gì cần sửa.
         </p>
       </div>
-      <div className="on-light w-full rounded-lg bg-surface p-6 text-ink sm:p-8">
+      <div style={{ animationDelay: "450ms" }} className="anim-rise on-light w-full rounded-lg bg-surface p-6 text-ink sm:p-8">
         <h1 className="title">{isLogin ? "Đăng nhập" : "Tạo tài khoản"}</h1>
         <p className="mt-1 mb-6 text-sm text-muted">
           {isLogin ? "Xem khách đang khen và chê điều gì ở quán của bạn." : "Dành cho chủ quán. Bạn sẽ tạo cửa hàng đầu tiên ngay sau bước này."}
@@ -60,7 +61,7 @@ export default function LoginPage() {
             {!isLogin && <p id="password-hint" className="mt-1 text-xs text-muted">Tối thiểu 8 ký tự.</p>}
           </div>
           {error && <p role="alert" className="text-sm text-negative">{error}</p>}
-          <button type="submit" disabled={loading} className="btn btn-primary h-11 w-full">
+          <button type="submit" disabled={loading} className="btn btn-primary btn-go h-11 w-full">
             {loading ? "Đang xử lý…" : isLogin ? "Đăng nhập" : "Tạo tài khoản"}
           </button>
         </form>

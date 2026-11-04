@@ -47,11 +47,11 @@ export default function PublicReviewPage() {
           <p className="text-muted">Đang tải…</p>
         ) : done ? (
           <div>
-            <span className="mb-6 flex size-10 items-center justify-center rounded-full bg-gold">
-              <Check aria-hidden className="size-5 text-navy" />
+            <span className="anim-rise mb-6 flex size-10 items-center justify-center rounded-full bg-gold">
+              <Check aria-hidden className="draw size-5 text-navy" />
             </span>
-            <h1 className="text-[34px] leading-[1.1] font-normal tracking-[0.05em] text-gold">Cảm ơn bạn đã góp ý</h1>
-            <p className="mt-2 text-muted">{storeName} đã nhận được góp ý của bạn và sẽ đọc từng ý một.</p>
+            <h1 style={{ animationDelay: "300ms" }} className="anim-rise text-[34px] leading-[1.1] font-normal tracking-[0.05em] text-gold">Cảm ơn bạn đã góp ý</h1>
+            <p style={{ animationDelay: "380ms" }} className="anim-rise mt-2 text-muted">{storeName} đã nhận được góp ý của bạn và sẽ đọc từng ý một.</p>
           </div>
         ) : (
           <form onSubmit={submit}>
@@ -65,7 +65,7 @@ export default function PublicReviewPage() {
                   <label key={n} className="-ml-1.5 cursor-pointer rounded-md p-1.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent">
                     <input type="radio" name="rating" value={n} className="sr-only" checked={rating === n} onChange={() => setRating(n)} />
                     <Star aria-hidden strokeWidth={1.5}
-                      className={`size-9 transition-colors duration-150 ${n <= rating ? "fill-star text-star" : "text-on-dark-muted"}`} />
+                      className={`size-9 transition-colors duration-150 ${n <= rating ? "fill-star text-star" : "text-on-dark-muted"} ${n === rating ? "pop" : ""}`} />
                     <span className="sr-only">{n} sao, {RATING_WORD[n]}</span>
                   </label>
                 ))}
@@ -85,7 +85,7 @@ export default function PublicReviewPage() {
             </div>
 
             {error && <p role="alert" className="mt-4 text-sm text-gold">{error}</p>}
-            <button disabled={sending} className="btn btn-gold mt-8 h-12 w-full text-[14px]">{sending ? "Đang gửi…" : "Gửi góp ý"}</button>
+            <button disabled={sending} className="btn btn-gold btn-go mt-8 h-12 w-full text-[14px]">{sending ? "Đang gửi…" : "Gửi góp ý"}</button>
           </form>
         )}
       </div>

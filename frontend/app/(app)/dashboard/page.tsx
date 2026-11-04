@@ -50,7 +50,7 @@ export default function DashboardPage() {
               : "Chưa có khía cạnh nào bị chê."}
           </p>
         </div>
-        {can(store, "manager") && <Link href="/import" className="btn btn-primary">Nhập đánh giá</Link>}
+        {can(store, "manager") && <Link href="/import" className="btn btn-primary btn-go">Nhập đánh giá</Link>}
       </header>
 
       {error && (
@@ -88,7 +88,7 @@ export default function DashboardPage() {
 // Tỉ lệ chê 7 ngày qua tăng vọt so với 8 tuần trước: đặt trên cùng vì cần xử lý ngay, không đợi báo cáo tuần
 function AnomalyStrip({ data }: { data: Anomalies }) {
   return (
-    <section aria-label="Cảnh báo bất thường" className="on-dark rounded-lg px-5 py-4">
+    <section aria-label="Cảnh báo bất thường" className="anim-drop on-dark rounded-lg px-5 py-4">
       <h2 className="text-[13px] font-semibold tracking-[0.08em] text-gold uppercase">Bất thường trong 7 ngày qua</h2>
       <ul className="mt-1 space-y-1 text-sm">
         {data.alerts.map((a) => {
@@ -173,7 +173,7 @@ function AspectBoard({ aspects }: { aspects: AspectRow[] }) {
         <p className="px-5 py-4 text-sm text-muted">Chưa đủ dữ liệu: mỗi khía cạnh cần ít nhất {MIN_MENTIONS} lượt nhắc.</p>
       ) : (
         <ul className="notebook mt-2 pb-2">
-          {aspects.map((a) => {
+          {aspects.map((a, i) => {
             const label = ASPECT_LABEL[a.aspect] ?? a.aspect;
             return (
               <li key={a.aspect} className="border-t border-rule px-5 py-3 first:border-t-0">
@@ -181,7 +181,7 @@ function AspectBoard({ aspects }: { aspects: AspectRow[] }) {
                   <Link href={`/reviews?aspect=${a.aspect}&sentiment=negative`} className="tap truncate font-medium hover:underline">
                     {label} <span className="num font-normal text-muted">{a.total}</span>
                   </Link>
-                  <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-sm" role="img"
+                  <div className="grow-x flex h-2.5 gap-0.5 overflow-hidden rounded-sm" role="img" style={{ animationDelay: `${i * 40}ms` }}
                     aria-label={`${label}: ${a.negative} tiêu cực, ${a.neutral} trung lập, ${a.positive} tích cực`}>
                     {(["negative", "neutral", "positive"] as const).map((k) => a[k] > 0 && (
                       <span key={k} style={{ flexGrow: a[k], background: SENTIMENT_COLOR[k] }} />

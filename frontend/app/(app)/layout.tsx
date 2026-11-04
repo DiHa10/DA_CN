@@ -79,7 +79,7 @@ function Sidebar() {
               <Link href="/reviews?sentiment=negative"
                 className="ml-[26px] flex h-8 items-center justify-between px-2.5 text-[13px] text-on-dark-muted transition-colors duration-150 hover:text-cream">
                 Tiêu cực mới
-                <span className="num rounded-sm bg-gold px-1.5 text-xs font-semibold text-navy">{newIds.size}</span>
+                <span key={newIds.size} className="pop num rounded-sm bg-gold px-1.5 text-xs font-semibold text-navy">{newIds.size}</span>
               </Link>
             )}
             </Fragment>
@@ -138,7 +138,7 @@ function BottomNav() {
             <span className="relative">
               <Icon aria-hidden strokeWidth={active ? 2 : 1.5} className="size-5" />
               {href === "/reviews" && newIds.size > 0 && (
-                <span className="num absolute -top-1.5 left-3.5 rounded-sm bg-gold px-1 text-[11px] leading-4 font-semibold text-navy">
+                <span key={newIds.size} className="pop num absolute -top-1.5 left-3.5 rounded-sm bg-gold px-1 text-[11px] leading-4 font-semibold text-navy">
                   {newIds.size}<span className="sr-only"> đánh giá tiêu cực mới</span>
                 </span>
               )}
@@ -162,7 +162,7 @@ function StoreGate({ children }: { children: React.ReactNode }) {
       <div className="max-w-md">
         <h1 className="title mb-2">Chưa có cửa hàng</h1>
         <p className="mb-4 text-muted">Tạo cửa hàng đầu tiên để nhận đánh giá qua mã QR và import từ Google Maps.</p>
-        <Link href="/stores" className="btn btn-primary">Tạo cửa hàng</Link>
+        <Link href="/stores" className="btn btn-primary btn-go">Tạo cửa hàng</Link>
       </div>
     );
   return children;

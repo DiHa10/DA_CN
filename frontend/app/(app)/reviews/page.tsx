@@ -99,7 +99,7 @@ function Reviews() {
               Xuất Excel
             </a>
           )}
-          {can(store, "manager") && <Link href="/import" className="btn btn-primary">Nhập đánh giá</Link>}
+          {can(store, "manager") && <Link href="/import" className="btn btn-primary btn-go">Nhập đánh giá</Link>}
         </div>
       </header>
 
@@ -160,7 +160,7 @@ function Reviews() {
                 <td className="w-full md:w-auto md:py-3 md:pr-4">
                   <p>
                     {shownNew.has(r.id) && <span className="sign mr-2">Mới</span>}
-                    <span className={`hand ${r.hidden ? "text-muted line-through decoration-1" : ""}`}>{r.content}</span>
+                    <span className={`hand strike ${r.hidden ? "on text-muted" : ""}`}>{r.content}</span>
                   </p>
                   {(r.spam_reasons || r.hidden) && (
                     <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">

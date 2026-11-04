@@ -89,16 +89,28 @@ body {
   .panel {
     @apply rounded-lg border border-border bg-surface;
   }
+  /* nút có chấm ở đầu: rê chuột thì chấm loang ra phủ kín nút, chữ đổi màu (xem .btn::before bên dưới).
+     --dot: màu chấm và màu phủ; --dot-ink: màu chữ khi đã phủ */
   .btn {
-    @apply inline-flex h-11 md:h-9 cursor-pointer items-center justify-center gap-2 rounded-sm border border-ink bg-transparent px-4 text-[13px] font-semibold tracking-[0.06em] whitespace-nowrap text-ink uppercase transition-colors duration-150 hover:bg-raised active:bg-active disabled:cursor-not-allowed disabled:opacity-60;
+    --dot: var(--navy);
+    --dot-ink: var(--cream);
+    @apply relative isolate inline-flex h-11 md:h-9 cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-sm border border-ink bg-transparent pr-4 pl-7 text-[13px] font-semibold tracking-[0.06em] whitespace-nowrap text-ink uppercase transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-60;
   }
   .btn-primary {
     /* dùng chung với .btn trên nền kem: vàng đồng trên kem mất hết tương phản nên nút chính là xanh đen */
-    @apply border-navy bg-navy text-cream hover:bg-[#22324f] active:bg-[#080e19];
+    --dot: var(--cream);
+    --dot-ink: var(--navy);
+    @apply border-navy bg-navy text-cream;
   }
   .btn-gold {
     /* nút chính trên nền tối */
-    @apply border-gold bg-gold text-navy hover:bg-[#ecc26c] active:bg-[#cc9a35];
+    --dot: var(--navy);
+    --dot-ink: var(--gold);
+    @apply border-gold bg-gold text-navy;
+  }
+  /* nút "đi tiếp" (đăng nhập, gửi, nhập dữ liệu): mũi tên trượt vào bên phải khi rê chuột */
+  .btn-go {
+    @apply pr-8;
   }
   .input {
     @apply h-11 md:h-10 w-full rounded-sm border border-control bg-white px-3 text-[15px] text-ink placeholder:text-muted;
@@ -136,9 +148,144 @@ body {
   outline-color: var(--gold);
 }
 
+/* ---------- chuyển động: chỉ transform và opacity; 150ms bấm, 250ms xuất hiện, 600ms màn mở đầu ---------- */
+:root {
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* nút chấm loang. Ngoài @layer vì ::before/::after cần đặt sau các tiện ích. Chỉ khi có chuột thật:
+   trên màn cảm ứng :hover dính lại sau khi chạm, nút sẽ tô kín mãi */
+.btn::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: calc(50% - 3px);
+  z-index: -1;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--dot);
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-go::after {
+  content: "→";
+  position: absolute;
+  right: 12px;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: transform 0.35s var(--ease), opacity 0.3s ease;
+}
+@media (hover: hover) {
+  .btn:not(:disabled):hover::before {
+    transform: scale(130); /* đủ phủ nút rộng tới ~400px */
+  }
+  .btn:not(:disabled):hover {
+    color: var(--dot-ink);
+  }
+  .btn-go:not(:disabled):hover::after {
+    opacity: 1;
+    transform: none;
+  }
+}
+.btn:focus-visible::before {
+  transform: scale(130);
+}
+.btn:focus-visible {
+  color: var(--dot-ink);
+}
+.btn-go:focus-visible::after {
+  opacity: 1;
+  transform: none;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+}
+@keyframes drop {
+  from { opacity: 0; transform: translateY(-8px); }
+}
+@keyframes line-in {
+  from { transform: translateY(105%); }
+}
+@keyframes grow-x {
+  from { transform: scaleX(0); }
+}
+@keyframes pop {
+  50% { transform: scale(1.25); }
+}
+@keyframes blink {
+  0%, 80%, 100% { opacity: 0.2; }
+  40% { opacity: 1; }
+}
+@keyframes draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* thứ mới xuất hiện (ô trả lời, chữ cảm ơn); delay đặt bằng style animationDelay */
+.anim-rise {
+  animation: rise 0.25s var(--ease) both;
+}
+/* dải cảnh báo rơi xuống từ trên */
+.anim-drop {
+  animation: drop 0.25s var(--ease) both;
+}
+/* chữ lớn trang đăng nhập: mỗi dòng trượt lên từ dưới một đường cắt */
+.line-mask {
+  display: block;
+  overflow: hidden;
+}
+.line-mask > span {
+  display: block;
+  animation: line-in 0.6s var(--ease) both;
+}
+/* thanh khen/chê dài ra từ trái */
+.grow-x {
+  transform-origin: left;
+  animation: grow-x 0.6s var(--ease) both;
+}
+/* nảy một lần: số "tiêu cực mới" tăng, sao vừa chọn */
+.pop {
+  animation: pop 0.3s var(--ease);
+}
+/* "AI đang đọc..." : ba chấm nhấp nháy lần lượt */
+.dots > span {
+  animation: blink 1.2s infinite both;
+}
+.dots > span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.dots > span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+/* gạch ngang chạy qua chữ khi ẩn review; background thay text-decoration để transition được,
+   box-decoration-break: clone để chữ xuống dòng thì dòng nào cũng có gạch */
+.strike {
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 58% / 0 1px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  transition: background-size 0.35s var(--ease), color 0.35s ease;
+}
+.strike.on {
+  background-size: 100% 1px;
+}
+/* dấu tích tự vẽ (form QR gửi xong) */
+.draw path,
+.draw polyline {
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  animation: draw 0.4s 0.15s var(--ease) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *,
+  *::before,
+  *::after {
     transition: none !important;
+    animation: none !important;
+  }
+  .draw path,
+  .draw polyline {
+    stroke-dashoffset: 0;
   }
 }
 

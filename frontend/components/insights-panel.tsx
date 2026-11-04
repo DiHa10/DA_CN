@@ -3,6 +3,7 @@
 import { api, type Insight } from "@/lib/api";
 import { ASPECT_LABEL } from "@/lib/labels";
 import Link from "next/link";
+import { Busy } from "./dots";
 import { useCallback, useEffect, useState } from "react";
 
 const SHOWN = 3; // cột phải dashboard: 3 khía cạnh nhiều lượt chê nhất, phần còn lại mở khi cần
@@ -47,7 +48,7 @@ export function InsightsPanel({ storeId, canRegenerate }: { storeId: number; can
         {canRegenerate && (
           <button className="tap cursor-pointer text-sm font-medium text-accent hover:underline disabled:cursor-wait disabled:text-muted disabled:no-underline"
             onClick={regenerate} disabled={busy}>
-            {busy ? "AI đang đọc…" : insight ? "Cập nhật" : "Tạo gợi ý"}
+            {busy ? <Busy text="AI đang đọc" /> : insight ? "Cập nhật" : "Tạo gợi ý"}
           </button>
         )}
       </div>
