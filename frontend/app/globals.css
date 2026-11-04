@@ -121,9 +121,9 @@ body {
   .tap {
     @apply -mx-3 -my-3.5 inline-block px-3 py-3.5 md:mx-0 md:my-0 md:px-0 md:py-0;
   }
-  /* nhãn nhỏ kiểu biển hiệu: chữ vàng trên nền đen */
+  /* nhãn nhỏ ("Ưu tiên", "Mới"): chữ kem trên nền xanh đen */
   .sign {
-    @apply rounded-sm bg-navy px-1.5 text-xs font-semibold tracking-[0.04em] text-lemon;
+    @apply rounded-sm bg-navy px-1.5 text-xs font-semibold tracking-[0.04em] text-cream;
   }
 }
 
