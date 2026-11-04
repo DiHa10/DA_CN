@@ -38,10 +38,13 @@ def filtered_reviews(
     q = select(Review).where(Review.store_id == store.id)
     if source:
         q = q.where(Review.source == source)
-    if sentiment:
-        q = q.join(ReviewAnalysis).where(ReviewAnalysis.sentiment == sentiment)
     if aspect:
-        q = q.where(Review.id.in_(select(ReviewAspect.review_id).where(ReviewAspect.aspect == aspect)))
+        mentions = select(ReviewAspect.review_id).where(ReviewAspect.aspect == aspect)
+        if sentiment:  # có khía cạnh thì lọc cảm xúc của khía cạnh đó: "3 lượt chê phục vụ" phải ra đúng 3 review
+            mentions = mentions.where(ReviewAspect.sentiment == sentiment)
+        q = q.where(Review.id.in_(mentions))
+    elif sentiment:
+        q = q.join(ReviewAnalysis).where(ReviewAnalysis.sentiment == sentiment)
     if date_from:
         q = q.where(Review.created_at >= vn_day_start(date_from))
     if date_to:

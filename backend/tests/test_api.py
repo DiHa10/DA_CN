@@ -34,6 +34,11 @@ def test_qr_review_is_analyzed_and_on_dashboard(client):
     assert service["latest_negative"]["content"] == "Phở ngon nhưng phục vụ chậm"
     assert dash["trend"][0]["neutral"] == 1  # "ngon" và "chậm" bù nhau
 
+    # cả review trung lập, nhưng phục vụ bị chê: lọc "phục vụ + tiêu cực" phải ra review này
+    base = f"/stores/{store['id']}/reviews"
+    assert len(client.get(base, params={"aspect": "service", "sentiment": "negative"}, headers=h).json()) == 1
+    assert client.get(base, params={"aspect": "food", "sentiment": "negative"}, headers=h).json() == []
+
 
 def test_csv_import_dedup_and_filters(client):
     h = auth_headers(client)

@@ -2,9 +2,14 @@
 
 import { api, type Insight } from "@/lib/api";
 import { ASPECT_LABEL } from "@/lib/labels";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 const SHOWN = 3; // cột phải dashboard: 3 khía cạnh nhiều lượt chê nhất, phần còn lại mở khi cần
+
+// ngày bắt đầu cửa sổ AI đọc, theo giờ VN (bộ lọc date_from tính theo ngày VN)
+const since = (iso: string, days: number) =>
+  new Date(new Date(iso).getTime() - days * 86400e3).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
 
 const formatTime = (iso: string) =>
   new Date(iso).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric" });
@@ -62,7 +67,11 @@ export function InsightsPanel({ storeId, canRegenerate }: { storeId: number; can
               <li key={a.aspect} className="border-t border-rule px-4 py-3 first:border-t-0">
                 <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span className="font-medium">{ASPECT_LABEL[a.aspect] ?? a.aspect}</span>
-                  <span className="num text-xs whitespace-nowrap text-muted">{a.mentions} lượt chê</span>
+                  {/* cùng cửa sổ ngày và bỏ review đã ẩn như lúc AI đọc, để số review mở ra khớp số lượt chê */}
+                  <Link href={`/reviews?aspect=${a.aspect}&sentiment=negative&hidden=false&date_from=${since(insight!.generated_at, c.window_days)}`}
+                    className="tap num text-xs whitespace-nowrap text-accent hover:underline">
+                    {a.mentions} lượt chê
+                  </Link>
                   {i === 0 && (
                     <span className="ml-auto flex-none rounded bg-[#fffbeb] px-1.5 text-xs font-medium whitespace-nowrap text-[#92400e]">
                       Ưu tiên
