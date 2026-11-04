@@ -79,7 +79,7 @@ function Sidebar() {
               <Link href="/reviews?sentiment=negative"
                 className="ml-[26px] flex h-8 items-center justify-between px-2.5 text-[13px] text-on-dark-muted transition-colors duration-150 hover:text-cream">
                 Tiêu cực mới
-                <span className="num rounded-sm bg-lemon px-1.5 text-xs font-semibold text-navy">{newIds.size}</span>
+                <span className="num rounded-sm bg-gold px-1.5 text-xs font-semibold text-navy">{newIds.size}</span>
               </Link>
             )}
             </Fragment>
@@ -111,7 +111,7 @@ function TopBar() {
       )}
       {store && (
         <a href={`/r/${store.slug}`} target="_blank" rel="noreferrer"
-          className="ml-auto hidden items-center gap-1.5 text-[13px] font-medium tracking-[0.06em] text-on-dark-muted uppercase hover:text-lemon md:flex">
+          className="ml-auto hidden items-center gap-1.5 text-[13px] font-medium tracking-[0.06em] text-on-dark-muted uppercase hover:text-gold md:flex">
           Form đánh giá của khách <ExternalLink aria-hidden strokeWidth={1.5} className="size-3.5" />
         </a>
       )}
@@ -134,11 +134,11 @@ function BottomNav() {
         const active = pathname.startsWith(href);
         return (
           <Link key={href} href={href} aria-current={active ? "page" : undefined}
-            className={`flex h-14 flex-col items-center justify-center gap-1 text-[11px] tracking-[0.04em] ${active ? "font-semibold text-lemon" : "text-on-dark-muted"}`}>
+            className={`flex h-14 flex-col items-center justify-center gap-1 text-[11px] tracking-[0.04em] ${active ? "font-semibold text-gold" : "text-on-dark-muted"}`}>
             <span className="relative">
               <Icon aria-hidden strokeWidth={active ? 2 : 1.5} className="size-5" />
               {href === "/reviews" && newIds.size > 0 && (
-                <span className="num absolute -top-1.5 left-3.5 rounded-sm bg-lemon px-1 text-[11px] leading-4 font-semibold text-navy">
+                <span className="num absolute -top-1.5 left-3.5 rounded-sm bg-gold px-1 text-[11px] leading-4 font-semibold text-navy">
                   {newIds.size}<span className="sr-only"> đánh giá tiêu cực mới</span>
                 </span>
               )}

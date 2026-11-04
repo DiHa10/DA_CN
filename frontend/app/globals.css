@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 /* Hướng "Limón" với màu chủ đạo xanh đen: khung xanh đen, vùng nội dung kem giấy, chữ xanh mực,
-   vàng chanh là màu nhấn duy nhất và chỉ đặt trên nền tối (trên nền kem chỉ đạt 1,2:1, không đọc được).
+   vàng đồng là màu nhấn duy nhất và chỉ đặt trên nền tối (trên nền kem chỉ đạt 1,9:1, không đọc được).
    Phẳng: không bóng, không chuyển màu, bo 1px. Chữ in hoa giãn rộng cho nhãn, nút, tên sản phẩm.
    Xanh/đỏ khen-chê giữ lại vì là nghĩa của dữ liệu, chỉnh về tông trầm cho hợp bảng màu. */
 :root {
   --navy: #0f1a2e; /* xanh đen: khung, nút chính trên nền kem */
   --blue: #1c3a6e; /* xanh mực: tiêu đề, link */
-  --lemon: #f7ea48; /* vàng chanh: chỉ trên nền tối */
+  --gold: #e3b04b; /* vàng đồng: chỉ trên nền tối */
   --cream: #fcf9f0;
   --sage: #d9dee8;
 
@@ -23,7 +23,7 @@
   --accent: var(--blue);
   --positive: #2f7a3e;
   --negative: #b3362b;
-  --star: var(--lemon);
+  --star: var(--gold);
   --primary: var(--navy);
   --on-dark-muted: #aab4c8; /* chữ phụ trên nền đen: 9:1 */
 }
@@ -45,7 +45,7 @@
   --color-primary: var(--primary);
   --color-navy: var(--navy);
   --color-blue: var(--blue);
-  --color-lemon: var(--lemon);
+  --color-gold: var(--gold);
   --color-cream: var(--cream);
   --color-sage: var(--sage);
   --color-on-dark-muted: var(--on-dark-muted);
@@ -93,12 +93,12 @@ body {
     @apply inline-flex h-11 md:h-9 cursor-pointer items-center justify-center gap-2 rounded-sm border border-ink bg-transparent px-4 text-[13px] font-semibold tracking-[0.06em] whitespace-nowrap text-ink uppercase transition-colors duration-150 hover:bg-raised active:bg-active disabled:cursor-not-allowed disabled:opacity-60;
   }
   .btn-primary {
-    /* dùng chung với .btn trên nền kem: vàng chanh trên kem mất hết tương phản nên nút chính là xanh đen */
+    /* dùng chung với .btn trên nền kem: vàng đồng trên kem mất hết tương phản nên nút chính là xanh đen */
     @apply border-navy bg-navy text-cream hover:bg-[#22324f] active:bg-[#080e19];
   }
-  .btn-lemon {
+  .btn-gold {
     /* nút chính trên nền tối */
-    @apply border-lemon bg-lemon text-navy hover:bg-[#fff36e] active:bg-[#e3d63a];
+    @apply border-gold bg-gold text-navy hover:bg-[#ecc26c] active:bg-[#cc9a35];
   }
   .input {
     @apply h-11 md:h-10 w-full rounded-sm border border-control bg-white px-3 text-[15px] text-ink placeholder:text-muted;
@@ -133,7 +133,7 @@ body {
   outline-offset: 2px;
 }
 .on-dark :focus-visible {
-  outline-color: var(--lemon);
+  outline-color: var(--gold);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -89,7 +89,7 @@ export default function DashboardPage() {
 function AnomalyStrip({ data }: { data: Anomalies }) {
   return (
     <section aria-label="Cảnh báo bất thường" className="on-dark px-5 py-4">
-      <h2 className="text-[13px] font-semibold tracking-[0.08em] text-lemon uppercase">Bất thường trong 7 ngày qua</h2>
+      <h2 className="text-[13px] font-semibold tracking-[0.08em] text-gold uppercase">Bất thường trong 7 ngày qua</h2>
       <ul className="mt-1 space-y-1 text-sm">
         {data.alerts.map((a) => {
           const href = `/reviews?sentiment=negative&date_from=${data.since}${a.aspect ? `&aspect=${a.aspect}` : ""}`;
@@ -101,7 +101,7 @@ function AnomalyStrip({ data }: { data: Anomalies }) {
                   : <><b className="font-medium">{pct0(a.rate)} đánh giá</b> là tiêu cực</>}
                 {" "}({a.negative}/{a.mentions}), thường chỉ {pct0(a.baseline_rate)}.
               </span>
-              <Link href={href} className="tap font-medium text-lemon underline underline-offset-2">Xem đánh giá</Link>
+              <Link href={href} className="tap font-medium text-gold underline underline-offset-2">Xem đánh giá</Link>
             </li>
           );
         })}

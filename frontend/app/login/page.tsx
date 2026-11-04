@@ -33,8 +33,8 @@ export default function LoginPage() {
       <Wordmark />
       <div className="mx-auto my-auto grid w-full max-w-5xl items-center gap-10 py-10 md:grid-cols-[1fr_400px] md:gap-16">
       <div>
-        {/* chữ lớn vàng chanh trên nền tối, như biển hiệu sáng đèn */}
-        <p className="text-[44px] leading-[1.02] font-normal tracking-[0.06em] text-lemon uppercase md:text-[68px]">
+        {/* chữ lớn vàng đồng trên nền tối, như biển hiệu sáng đèn */}
+        <p className="text-[44px] leading-[1.02] font-normal tracking-[0.06em] text-gold uppercase md:text-[68px]">
           Khách<br />nói gì?
         </p>
         <p className="mt-5 max-w-md text-[17px] leading-[1.45] tracking-[0.02em] text-cream md:text-[19px]">
