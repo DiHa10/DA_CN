@@ -10,3 +10,5 @@ ml/models/
 *.zip
 backend/outbox/
 .ollama/
+ml/scrape/raw/
+ml/scrape/out/
