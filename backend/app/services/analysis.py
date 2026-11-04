@@ -22,7 +22,7 @@ def analyze_reviews(review_ids: list[int]) -> None:
     with SessionLocal() as db:
         for i in range(0, len(review_ids), BATCH_SIZE):
             reviews = db.scalars(select(Review).where(Review.id.in_(review_ids[i:i + BATCH_SIZE]))).all()
-            for review, result in zip(reviews, analyze_batch([r.content for r in reviews])):
+            for review, result in zip(reviews, analyze_batch([r.content for r in reviews], [r.rating for r in reviews])):
                 review.analysis = ReviewAnalysis(sentiment=result["sentiment"], confidence=result["confidence"])
                 review.aspects = [ReviewAspect(aspect=a, sentiment=s) for a, s in result["aspects"].items()]
             spam.flag_reviews(db, reviews)  # cần kết quả cảm xúc để so với số sao

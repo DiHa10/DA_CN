@@ -1,4 +1,4 @@
-from app.services.nlp import analyze
+from app.services.nlp import analyze, analyze_batch
 
 
 def test_mixed_review_split_by_aspect():
@@ -18,3 +18,9 @@ def test_khong_gian_is_not_negation():
 
 def test_neutral_when_no_opinion():
     assert analyze("Tôi đến quán lúc 7 giờ")["sentiment"] == "neutral"
+
+
+def test_rating_decides_when_text_has_no_lean():
+    texts = ["Không còn gì để nói, luôn là điểm dừng chân lí tưởng"] * 4 + ["Phở ngon"]
+    out = [r["sentiment"] for r in analyze_batch(texts, [5, 1, 3, None, 1])]
+    assert out == ["positive", "negative", "neutral", "neutral", "positive"]  # nội dung đã rõ thì không xét số sao

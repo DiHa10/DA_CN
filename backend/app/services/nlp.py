@@ -110,17 +110,31 @@ def load_model():
     return _predictor
 
 
-def analyze_batch(texts: list[str]) -> list[dict]:
+def _from_rating(rating: int | None, fallback: str) -> str:
+    """Nội dung không nghiêng về bên nào (khen chung chung, không nhắc khía cạnh nào): dựa vào số sao khách chấm."""
+    if not rating:
+        return fallback
+    return "positive" if rating >= 4 else "negative" if rating <= 2 else "neutral"
+
+
+def analyze_batch(texts: list[str], ratings: list[int | None] | None = None) -> list[dict]:
+    ratings = ratings or [None] * len(texts)
     predictor = load_model()
     if predictor is None:
-        return [analyze(t) for t in texts]
+        results = [analyze(t) for t in texts]
+        for r, rating in zip(results, ratings):
+            if r["sentiment"] == "neutral":
+                r["sentiment"] = _from_rating(rating, "neutral")
+        return results
     results = []
-    for aspects in predictor.predict(texts):
+    for text, rating, aspects in zip(texts, ratings, predictor.predict(texts)):
         # VLSP không có nhãn tổng thể: suy ra từ khía cạnh, khen cộng chê trừ (giống nhánh từ điển)
         score = sum(1 if label == "positive" else -1 if label == "negative" else 0 for label, _ in aspects.values())
         probs = [p for _, p in aspects.values()]
+        # tổng bằng 0, ví dụ "Không còn gì để nói, luôn là điểm dừng chân lí tưởng": không khía cạnh nào được nhắc
+        sentiment = _label(score) if score else _from_rating(rating, analyze(text)["sentiment"])
         results.append({
-            "sentiment": _label(score),
+            "sentiment": sentiment,
             "confidence": round(sum(probs) / len(probs), 3) if probs else 0.5,
             "aspects": {a: label for a, (label, _) in aspects.items()},
         })
