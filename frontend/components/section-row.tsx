@@ -5,7 +5,7 @@ export function SectionRow({ title, description, children }: {
   return (
     <section className="grid gap-4 border-t border-border py-8 first:border-t-0 first:pt-2 lg:grid-cols-[320px_minmax(0,1fr)] lg:gap-10">
       <div>
-        <h2 className="text-base font-semibold">{title}</h2>
+        <h2 className="heading">{title}</h2>
         <div className="mt-1 space-y-2 text-sm text-muted">{description}</div>
       </div>
       <div className="max-w-2xl rounded-lg bg-raised p-5">{children}</div>

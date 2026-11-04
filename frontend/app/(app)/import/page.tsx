@@ -55,14 +55,14 @@ export default function ImportPage() {
   if (!can(store, "manager"))
     return (
       <div className="max-w-md">
-        <h1 className="text-[22px] leading-7 font-semibold">Nhập dữ liệu</h1>
+        <h1 className="title">Nhập dữ liệu</h1>
         <p className="mt-1 text-muted">Chỉ quản lý hoặc chủ quán được nhập đánh giá. Nhờ chủ quán đổi vai trò nếu bạn cần làm việc này.</p>
       </div>
     );
 
   return (
     <div>
-      <h1 className="text-[22px] leading-7 font-semibold">Nhập dữ liệu</h1>
+      <h1 className="title">Nhập dữ liệu</h1>
       <p className="mt-1 mb-4 text-[15px] text-muted">Đánh giá mới được phân tích ngay sau khi nhập vào {store?.name}.</p>
 
       <SectionRow title="Import từ file" description={<>

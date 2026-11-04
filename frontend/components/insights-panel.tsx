@@ -43,7 +43,7 @@ export function InsightsPanel({ storeId, canRegenerate }: { storeId: number; can
     // nằm ở cột phải dashboard: tiêu đề ngoài khung như "Tiêu cực gần đây"
     <section aria-busy={busy}>
       <div className="mb-2 flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold">Gợi ý cải thiện</h2>
+        <h2 className="heading">Gợi ý cải thiện</h2>
         {canRegenerate && (
           <button className="tap cursor-pointer text-sm font-medium text-accent hover:underline disabled:cursor-wait disabled:text-muted disabled:no-underline"
             onClick={regenerate} disabled={busy}>
@@ -73,7 +73,7 @@ export function InsightsPanel({ storeId, canRegenerate }: { storeId: number; can
                     {a.mentions} lượt chê
                   </Link>
                   {i === 0 && (
-                    <span className="ml-auto flex-none rounded bg-[#fffbeb] px-1.5 text-xs font-medium whitespace-nowrap text-[#92400e]">
+                    <span className="sign ml-auto flex-none whitespace-nowrap">
                       Ưu tiên
                     </span>
                   )}

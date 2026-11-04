@@ -10,19 +10,19 @@ export const SENTIMENT_LABEL: Record<Sentiment, string> = {
 
 // màu dữ liệu: khen xanh, chê đỏ, trung lập xám (SVG của Recharts cần mã màu, không nhận CSS var)
 export const SENTIMENT_COLOR: Record<Sentiment, string> = {
-  positive: "#2e7d4f",
-  neutral: "#b8becc",
-  negative: "#c8323c",
+  positive: "#2f7a3e",
+  neutral: "#c5ccc3",
+  negative: "#b3362b",
 };
 
 // cặp nền nhạt + chữ đậm cùng tông cho pill
 export const SENTIMENT_PILL: Record<Sentiment, string> = {
-  positive: "bg-[#dcfae5] text-[#04250e]",
-  neutral: "bg-[#ebedee] text-[#353736]",
-  negative: "bg-[#ffedea] text-[#831c1e]",
+  positive: "bg-[#e2ecdf] text-[#103b15]",
+  neutral: "bg-[#e6e9e3] text-[#2d332e]",
+  negative: "bg-[#f6e0da] text-[#7a1f17]",
 };
 
-export const ACCENT = "#2c4ba0";
+export const ACCENT = "#103b15";
 
 export const ASPECT_LABEL: Record<string, string> = {
   food: "Món ăn",

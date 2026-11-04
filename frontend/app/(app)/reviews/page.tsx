@@ -90,7 +90,7 @@ function Reviews() {
     <div>
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[22px] leading-7 font-semibold">Đánh giá</h1>
+          <h1 className="title">Đánh giá</h1>
           <p className="mt-1 text-[15px] text-muted">Mọi đánh giá của {store?.name}, mới nhất trước.</p>
         </div>
         <div className="flex gap-2">
@@ -159,7 +159,7 @@ function Reviews() {
               <tr key={r.id} className="flex flex-wrap items-center gap-x-3 border-t border-rule py-3 md:table-row md:[&>td]:align-top">
                 <td className="w-full md:w-auto md:py-3 md:pr-4">
                   <p>
-                    {shownNew.has(r.id) && <span className="mr-2 rounded bg-[#ffedea] px-1.5 text-xs font-medium text-[#831c1e]">Mới</span>}
+                    {shownNew.has(r.id) && <span className="sign mr-2">Mới</span>}
                     <span className={`hand ${r.hidden ? "text-muted line-through decoration-1" : ""}`}>{r.content}</span>
                   </p>
                   {(r.spam_reasons || r.hidden) && (

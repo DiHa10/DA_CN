@@ -43,7 +43,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
-          <h1 className="text-[22px] leading-7 font-semibold">Tổng quan</h1>
+          <h1 className="title">Tổng quan</h1>
           <p className="mt-1 text-[15px] text-muted">
             {!data ? "Đang tải dữ liệu…"
               : worst ? <>Khách chê <b className="font-medium text-ink">{ASPECT_LABEL[worst.aspect] ?? worst.aspect}</b> nhiều nhất: {pct0(negRate(worst))} lượt nhắc là tiêu cực.</>
@@ -88,8 +88,8 @@ export default function DashboardPage() {
 // Tỉ lệ chê 7 ngày qua tăng vọt so với 8 tuần trước: đặt trên cùng vì cần xử lý ngay, không đợi báo cáo tuần
 function AnomalyStrip({ data }: { data: Anomalies }) {
   return (
-    <section aria-label="Cảnh báo bất thường" className="rounded-lg border-l-4 border-[#c8323c] bg-[#ffedea] px-4 py-3 text-[#831c1e]">
-      <h2 className="font-semibold">Bất thường trong 7 ngày qua</h2>
+    <section aria-label="Cảnh báo bất thường" className="on-dark px-5 py-4">
+      <h2 className="text-[13px] font-semibold tracking-[0.08em] text-lemon uppercase">Bất thường trong 7 ngày qua</h2>
       <ul className="mt-1 space-y-1 text-sm">
         {data.alerts.map((a) => {
           const href = `/reviews?sentiment=negative&date_from=${data.since}${a.aspect ? `&aspect=${a.aspect}` : ""}`;
@@ -101,7 +101,7 @@ function AnomalyStrip({ data }: { data: Anomalies }) {
                   : <><b className="font-medium">{pct0(a.rate)} đánh giá</b> là tiêu cực</>}
                 {" "}({a.negative}/{a.mentions}), thường chỉ {pct0(a.baseline_rate)}.
               </span>
-              <Link href={href} className="tap font-medium underline">Xem đánh giá</Link>
+              <Link href={href} className="tap font-medium text-lemon underline underline-offset-2">Xem đánh giá</Link>
             </li>
           );
         })}
@@ -164,7 +164,7 @@ function AspectBoard({ aspects }: { aspects: AspectRow[] }) {
     <section className="panel">
       <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-4">
         <div>
-          <h2 className="text-base font-semibold">Khách nói gì về từng khía cạnh</h2>
+          <h2 className="heading">Khách nói gì về từng khía cạnh</h2>
           <p className="text-xs text-muted">Xếp theo tỉ lệ tiêu cực, cao nhất trước</p>
         </div>
         <Legend />
@@ -216,11 +216,11 @@ function Trend({ data }: { data: Summary }) {
   const step = Math.max(avg, ...points.map((p) => p.rate)) > 40 ? 20 : 10;
   const top = (Math.floor(Math.max(avg, ...points.map((p) => p.rate)) / step) + 1) * step;
   const ticks = Array.from({ length: top / step + 1 }, (_, i) => i * step);
-  const axis = { stroke: "transparent", tick: { fill: "#59617e", fontSize: 12 } };
+  const axis = { stroke: "transparent", tick: { fill: "#5b6459", fontSize: 12 } };
 
   return (
     <section className="panel px-5 pt-4 pb-3">
-      <h2 className="text-base font-semibold">Tỉ lệ đánh giá tiêu cực theo tuần</h2>
+      <h2 className="heading">Tỉ lệ đánh giá tiêu cực theo tuần</h2>
       <p className="text-xs text-muted">Đường nét đứt: trung bình toàn bộ {formatNum(avg)}%</p>
       {/* biểu đồ SVG không đọc được bằng trình đọc màn hình: đưa số liệu chính thành một câu */}
       <div className="mt-3 h-[200px]" role="img" aria-label={points.length
@@ -228,13 +228,13 @@ function Trend({ data }: { data: Summary }) {
         : "Chưa có dữ liệu theo tuần"}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={points} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-            <CartesianGrid stroke="#e4e9f2" vertical={false} />
+            <CartesianGrid stroke="#e6eae4" vertical={false} />
             <XAxis dataKey="label" {...axis} tickLine={false} minTickGap={24} />
             <YAxis domain={[0, top]} ticks={ticks} unit="%" {...axis} tickLine={false} />
-            <ReferenceLine y={avg} stroke="#59617e" strokeDasharray="4 4" />
+            <ReferenceLine y={avg} stroke="#5b6459" strokeDasharray="4 4" />
             <Tooltip
-              cursor={{ stroke: "#c7cedb" }}
-              contentStyle={{ border: "1px solid #dde3ee", borderRadius: 6, fontSize: 13, padding: "6px 10px" }}
+              cursor={{ stroke: "#858f85" }}
+              contentStyle={{ border: "1px solid #dbe2dc", borderRadius: 1, background: "#fcf9f0", fontSize: 13, padding: "6px 10px" }}
               labelFormatter={(_, p) => (p[0] ? `Tuần từ ${formatDate(p[0].payload.week)}` : "")}
               formatter={(_, __, p) => [`${formatNum(p.payload.rate)}% (${p.payload.neg}/${p.payload.n} đánh giá)`, "Tiêu cực"]}
             />
@@ -250,7 +250,7 @@ function RecentNegative({ reviews }: { reviews: Review[] | null }) {
   const { newIds } = useNegativeAlert();
   return (
     <section>
-      <h2 className="mb-2 text-base font-semibold">Tiêu cực gần đây</h2>
+      <h2 className="heading mb-2">Tiêu cực gần đây</h2>
       <div className="panel">
         {!reviews ? (
           <p className="px-4 py-3 text-sm text-muted">Đang tải…</p>
@@ -261,7 +261,7 @@ function RecentNegative({ reviews }: { reviews: Review[] | null }) {
             {reviews.map((r) => (
               <li key={r.id} className="border-t border-rule px-4 py-3 first:border-t-0">
                 <p className="line-clamp-2">
-                  {newIds.has(r.id) && <span className="mr-2 rounded bg-[#ffedea] px-1.5 text-xs font-medium text-[#831c1e]">Mới</span>}
+                  {newIds.has(r.id) && <span className="sign mr-2">Mới</span>}
                   <span className="hand">{r.content}</span>
                 </p>
                 <p className="mt-1 text-xs text-muted">

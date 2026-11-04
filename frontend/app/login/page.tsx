@@ -29,10 +29,20 @@ export default function LoginPage() {
 
   const isLogin = mode === "login";
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-4 py-10">
-      <div className="mb-6"><Wordmark /></div>
-      <div className="w-full max-w-sm rounded-2xl border border-border bg-surface p-6 sm:p-8">
-        <h1 className="text-[22px] leading-7 font-semibold">{isLogin ? "Đăng nhập" : "Tạo tài khoản"}</h1>
+    <main className="on-dark flex min-h-screen flex-col px-5 py-6 md:px-12">
+      <Wordmark />
+      <div className="mx-auto my-auto grid w-full max-w-5xl items-center gap-10 py-10 md:grid-cols-[1fr_400px] md:gap-16">
+      <div>
+        {/* chữ lớn vàng chanh trên nền tối, như biển hiệu sáng đèn */}
+        <p className="text-[44px] leading-[1.02] font-normal tracking-[0.06em] text-lemon uppercase md:text-[68px]">
+          Khách<br />nói gì?
+        </p>
+        <p className="mt-5 max-w-md text-[17px] leading-[1.45] tracking-[0.02em] text-cream md:text-[19px]">
+          Đọc mọi đánh giá từ Google Maps và mã QR tại quán, biết ngay món nào được khen và điều gì cần sửa.
+        </p>
+      </div>
+      <div className="on-light w-full bg-surface p-6 text-ink sm:p-8">
+        <h1 className="title">{isLogin ? "Đăng nhập" : "Tạo tài khoản"}</h1>
         <p className="mt-1 mb-6 text-sm text-muted">
           {isLogin ? "Xem khách đang khen và chê điều gì ở quán của bạn." : "Dành cho chủ quán. Bạn sẽ tạo cửa hàng đầu tiên ngay sau bước này."}
         </p>
@@ -50,18 +60,19 @@ export default function LoginPage() {
             {!isLogin && <p id="password-hint" className="mt-1 text-xs text-muted">Tối thiểu 8 ký tự.</p>}
           </div>
           {error && <p role="alert" className="text-sm text-negative">{error}</p>}
-          <button type="submit" disabled={loading} className="btn btn-primary h-10 w-full">
+          <button type="submit" disabled={loading} className="btn btn-primary h-11 w-full">
             {loading ? "Đang xử lý…" : isLogin ? "Đăng nhập" : "Tạo tài khoản"}
           </button>
         </form>
-      </div>
-      <p className="mt-5 text-sm text-muted">
+      <p className="mt-6 text-sm text-muted">
         {isLogin ? "Chưa có tài khoản? " : "Đã có tài khoản? "}
         <button type="button" onClick={() => { setMode(isLogin ? "register" : "login"); setError(""); }}
           className="cursor-pointer font-medium text-accent hover:underline">
           {isLogin ? "Đăng ký" : "Đăng nhập"}
         </button>
       </p>
+      </div>
+      </div>
     </main>
   );
 }

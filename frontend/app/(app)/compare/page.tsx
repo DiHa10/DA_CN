@@ -37,7 +37,7 @@ export default function ComparePage() {
 
   return (
     <div>
-      <h1 className="text-[22px] leading-7 font-semibold">So sánh chi nhánh</h1>
+      <h1 className="title">So sánh chi nhánh</h1>
       <p className="mt-1 text-[15px] text-muted">
         Tỉ lệ đánh giá tiêu cực {data.days} ngày qua. Chữ đỏ đậm: tệ hơn mức chung của mọi chi nhánh (từ {MIN_MENTIONS} lượt nhắc trở lên).
       </p>

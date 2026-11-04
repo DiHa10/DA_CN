@@ -59,7 +59,7 @@ export default function StoresPage() {
 
   return (
     <div>
-      <h1 className="text-[22px] leading-7 font-semibold">Cửa hàng</h1>
+      <h1 className="title">Cửa hàng</h1>
       <p className="mt-1 mb-4 text-[15px] text-muted">
         {stores ? `${stores.length} cửa hàng. Mỗi cửa hàng có một form góp ý riêng cho khách quét QR.` : "Đang tải…"}
       </p>

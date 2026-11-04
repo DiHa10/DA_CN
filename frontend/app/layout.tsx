@@ -1,18 +1,12 @@
 import type { Metadata } from "next";
-import { Be_Vietnam_Pro, Patrick_Hand } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const ui = Be_Vietnam_Pro({
+// thay cho VenusCom của hướng Limón: trong các font thay thế, chỉ Plus Jakarta Sans có bộ dấu tiếng Việt
+const ui = Plus_Jakarta_Sans({
   variable: "--font-ui",
   subsets: ["latin", "vietnamese"],
   weight: ["400", "500", "600", "700"],
-});
-
-// chỉ cho lời khách
-const hand = Patrick_Hand({
-  variable: "--font-hand-face",
-  subsets: ["latin", "vietnamese"],
-  weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -27,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi">
-      <body className={`${ui.variable} ${hand.variable} font-sans antialiased`}>{children}</body>
+      <body className={`${ui.variable} font-sans antialiased`}>{children}</body>
     </html>
   );
 }
