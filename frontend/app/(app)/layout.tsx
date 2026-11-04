@@ -1,6 +1,7 @@
 "use client";
 
 import { Mark, Wordmark } from "@/components/mark";
+import { Icon3D } from "@/components/icon3d";
 import { NegativeAlertProvider, useNegativeAlert } from "@/components/negative-alert";
 import { StoreProvider, useStores } from "@/components/store-context";
 import { can } from "@/lib/api";
@@ -160,6 +161,7 @@ function StoreGate({ children }: { children: React.ReactNode }) {
   if (!stores.length)
     return (
       <div className="max-w-md">
+        <Icon3D name="rocket" size={96} className="mb-4" />
         <h1 className="title mb-2">Chưa có cửa hàng</h1>
         <p className="mb-4 text-muted">Tạo cửa hàng đầu tiên để nhận đánh giá qua mã QR và import từ Google Maps.</p>
         <Link href="/stores" className="btn btn-primary btn-go">Tạo cửa hàng</Link>

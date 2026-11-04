@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon3D, type Icon3DName } from "@/components/icon3d";
 import { Wordmark } from "@/components/mark";
 import { api, json, type Sentiment } from "@/lib/api";
 import { ASPECT_LABEL, SENTIMENT_LABEL, SENTIMENT_PILL } from "@/lib/labels";
@@ -196,12 +197,13 @@ export default function IntroPage() {
       {/* 2. Thu thập */}
       <Section id="collect" step="1" title="Góp ý đến từ ba nơi" intro="Bạn không phải chép tay. Mọi nguồn đổ về một chỗ." pin={motion}>
         <div className="grid grid-cols-3 gap-3 md:gap-4">
-          {[
-            ["Google Maps", "Tải đánh giá của quán về thành file, rồi nhập vào. Review đã có thì tự bỏ qua."],
-            ["Mã QR tại bàn", "Khách quét mã, chấm sao, viết vài dòng. Không cần cài app."],
-            ["Nhập tay", "Góp ý nghe ở quầy, hoặc file Excel có sẵn của quán."],
-          ].map(([t, d]) => (
+          {([
+            ["Google Maps", "Tải đánh giá của quán về thành file, rồi nhập vào. Review đã có thì tự bỏ qua.", "map-pin"],
+            ["Mã QR tại bàn", "Khách quét mã, chấm sao, viết vài dòng. Không cần cài app.", "mobile"],
+            ["Nhập tay", "Góp ý nghe ở quầy, hoặc file Excel có sẵn của quán.", "pencil"],
+          ] as const).map(([t, d, icon]) => (
             <div key={t} data-source className="panel p-3 md:p-5">
+              <Icon3D name={icon} size={64} className="mb-2 size-10 md:size-16" />
               <h3 className="heading">{t}</h3>
               <p className="mt-2 hidden text-muted sm:block">{d}</p>
             </div>
@@ -221,7 +223,7 @@ export default function IntroPage() {
       </Section>
 
       {/* 3. Phân tích + thử trực tiếp */}
-      <Section id="analyze" step="2" title="Máy đọc từng câu, tách theo 6 khía cạnh" dark pin={motion}
+      <Section id="analyze" icon="chat-bubble" step="2" title="Máy đọc từng câu, tách theo 6 khía cạnh" dark pin={motion}
         intro="Một câu khách viết thường nói nhiều chuyện cùng lúc. Hệ thống xem từng chuyện: món ăn, phục vụ, giá… được khen hay bị chê."
         after={<LiveTry />}>
         <p className="text-[34px] leading-snug tracking-[0.02em] md:text-[58px]">
@@ -235,7 +237,7 @@ export default function IntroPage() {
       </Section>
 
       {/* 4. Tổng hợp */}
-      <Section id="summary" step="3" title="Hàng trăm góp ý thành một bảng" pin={motion}
+      <Section id="summary" icon="chart" step="3" title="Hàng trăm góp ý thành một bảng" pin={motion}
         intro="Mỗi ô là một lượt khách nhắc tới: đỏ là chê, xám là trung lập, xanh là khen. Khía cạnh bị chê nhiều nhất nằm trên cùng.">
         <div className="mb-6 flex gap-6 md:gap-10">
           {[["Đánh giá", 300], ["Khen", 174], ["Chê", 101]].map(([l, v]) => (
@@ -260,7 +262,7 @@ export default function IntroPage() {
       </Section>
 
       {/* 5. Cảnh báo + gợi ý AI */}
-      <Section id="alert" step="4" title="Chê tăng vọt thì báo ngay, AI gợi ý việc nên làm" dark pin={motion}
+      <Section id="alert" icon="bell" step="4" title="Chê tăng vọt thì báo ngay, AI gợi ý việc nên làm" dark pin={motion}
         intro="Hệ thống so tỉ lệ chê 7 ngày qua với 8 tuần trước. Tăng rõ rệt, không phải ngẫu nhiên, thì báo ở đầu trang Tổng quan và trong email sáng thứ Hai.">
         <div data-alert-stage className="grid items-center gap-6 lg:grid-cols-2 lg:gap-8">
           <svg data-trend viewBox="0 0 400 170" aria-label="Tỉ lệ chê phục vụ theo tuần: ổn định khoảng 18%, tuần này vọt lên 64%" role="img" className="max-h-28 w-full overflow-visible md:max-h-none">
@@ -279,7 +281,7 @@ export default function IntroPage() {
               <p className="mt-1">Phục vụ bị chê 64% lượt nhắc (9/14), thường chỉ 18%.</p>
             </div>
             <div data-ai-card className="on-light rounded-lg bg-surface p-4 text-ink">
-              <p className="heading">Gợi ý cải thiện · Phục vụ</p>
+              <p className="heading flex items-center gap-2"><Icon3D name="bulb" size={28} />Gợi ý cải thiện · Phục vụ</p>
               <p data-ai-text className="mt-2">
                 Khách phàn nàn chờ món lâu vào giờ trưa. Nên thêm một người chạy bàn từ 11 giờ đến 13 giờ, và báo trước thời gian chờ khi quán đông.
               </p>
@@ -290,7 +292,7 @@ export default function IntroPage() {
       </Section>
 
       {/* 6. Spam */}
-      <Section id="spam" step="5" title="Review đáng ngờ được gắn cờ" intro="Một nội dung đăng lại nhiều lần, một máy gửi dồn dập qua mã QR, nội dung vô nghĩa, số sao ngược với lời viết: hệ thống gắn cờ “Nghi spam”. Quản lý xem lại rồi quyết định có ẩn khỏi thống kê hay không, máy không tự xóa lời của khách.">
+      <Section id="spam" icon="shield" step="5" title="Review đáng ngờ được gắn cờ" intro="Một nội dung đăng lại nhiều lần, một máy gửi dồn dập qua mã QR, nội dung vô nghĩa, số sao ngược với lời viết: hệ thống gắn cờ “Nghi spam”. Quản lý xem lại rồi quyết định có ẩn khỏi thống kê hay không, máy không tự xóa lời của khách.">
         <div data-spam-stage className="relative mx-auto h-44 max-w-md">
           {[0, 1, 2].map((i) => (
             <div key={i} data-dup className="panel absolute inset-x-0 top-6 p-4" style={{ zIndex: i, translate: `${(i - 1) * 18}px 0`, rotate: `${(i - 1) * 4}deg` }}>
@@ -305,7 +307,7 @@ export default function IntroPage() {
       </Section>
 
       {/* 7. Vai trò */}
-      <Section id="roles" step="6" title="Ai làm được gì" dark intro="Mỗi người được thêm vào quán với một vai trò. Ai cũng xem được số liệu, việc thay đổi dữ liệu thì tùy vai trò.">
+      <Section id="roles" icon="key" step="6" title="Ai làm được gì" dark intro="Mỗi người được thêm vào quán với một vai trò. Ai cũng xem được số liệu, việc thay đổi dữ liệu thì tùy vai trò.">
         <div className="grid gap-4 [perspective:900px] md:grid-cols-3">
           {ROLES.map((r) => (
             <div key={r.name} data-rise className="rounded-lg border border-[#22324f] p-5">
@@ -320,7 +322,7 @@ export default function IntroPage() {
       </Section>
 
       {/* 8. Bắt đầu */}
-      <Section id="start" step="7" title="Bắt đầu trong 5 phút" intro="Việc đầu tiên cho từng vai trò.">
+      <Section id="start" icon="rocket" step="7" title="Bắt đầu trong 5 phút" intro="Việc đầu tiên cho từng vai trò.">
         <ol className="grid gap-4 [perspective:900px] md:grid-cols-3">
           {STEPS.map((s, i) => (
             <li key={s.who} data-rise className="panel p-5">
@@ -392,12 +394,15 @@ function Ruler() {
 
 // Một phần của trang. pin: khối cao 260vh, nội dung ghim giữa màn hình để timeline tua theo cuộn.
 // after: nội dung nằm sau cảnh ghim (ô thử trực tiếp), cuộn bình thường.
-function Section({ id, step, title, intro, dark, pin, after, children }: {
-  id: string; step: string; title: string; intro: string; dark?: boolean; pin?: boolean; after?: React.ReactNode; children: React.ReactNode;
+function Section({ id, step, title, intro, icon, dark, pin, after, children }: {
+  id: string; step: string; title: string; intro: string; icon?: Icon3DName; dark?: boolean; pin?: boolean; after?: React.ReactNode; children: React.ReactNode;
 }) {
   const head = (
     <>
-      <p className={`num text-[13px] font-semibold tracking-[0.1em] uppercase ${dark ? "text-gold" : "text-blue"}`}>{step.padStart(2, "0")}</p>
+      <div className="flex items-end justify-between gap-4">
+        <p className={`num text-[13px] font-semibold tracking-[0.1em] uppercase ${dark ? "text-gold" : "text-blue"}`}>{step.padStart(2, "0")}</p>
+        {icon && <Icon3D name={icon} size={112} className="float -mb-6 size-14 md:-mb-10 md:size-28" />}
+      </div>
       <h2 className={`mt-2 max-w-3xl text-[28px] leading-[1.15] font-medium tracking-[0.03em] md:text-[44px] ${dark ? "text-cream" : "text-blue"}`}>{title}</h2>
       <p className={`mt-3 mb-6 max-w-2xl text-[15px] leading-[1.5] md:mt-4 md:mb-10 md:text-[17px] ${dark ? "text-on-dark-muted" : "text-muted"}`}>{intro}</p>
     </>

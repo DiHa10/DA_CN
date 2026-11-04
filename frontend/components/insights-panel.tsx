@@ -5,6 +5,7 @@ import { ASPECT_LABEL } from "@/lib/labels";
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { Busy } from "./dots";
+import { Icon3D } from "./icon3d";
 import { Skeleton } from "./skeleton";
 import { useCallback, useEffect, useState } from "react";
 
@@ -85,7 +86,12 @@ export function InsightsPanel({ storeId, canRegenerate }: { storeId: number; can
         </p>
         {error && <p role="alert" className="px-4 pt-3 text-sm text-negative">{error}</p>}
         {insight === undefined && !error && <Skeleton lines={4} className="px-4 py-4" />}
-        {insight === null && !error && <p className="px-4 py-3 text-sm text-muted">{canRegenerate ? "Chưa có gợi ý. Bấm “Tạo gợi ý”." : "Chưa có gợi ý. Quản lý hoặc chủ quán tạo gợi ý."}</p>}
+        {insight === null && !error && (
+          <div className="flex items-center gap-3 px-4 py-3 text-sm text-muted">
+            <Icon3D name="bulb" size={48} />
+            {canRegenerate ? "Chưa có gợi ý. Bấm “Tạo gợi ý”." : "Chưa có gợi ý. Quản lý hoặc chủ quán tạo gợi ý."}
+          </div>
+        )}
 
         {c && (
           <>

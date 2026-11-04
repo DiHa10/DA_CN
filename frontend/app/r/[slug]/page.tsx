@@ -1,8 +1,9 @@
 "use client";
 
 import { api, json } from "@/lib/api";
+import { Icon3D } from "@/components/icon3d";
 import { shake } from "@/lib/motion";
-import { Check, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -51,9 +52,7 @@ export default function PublicReviewPage() {
           <p className="text-muted">Đang tải…</p>
         ) : done ? (
           <div>
-            <span className="anim-rise mb-6 flex size-10 items-center justify-center rounded-full bg-gold">
-              <Check aria-hidden className="draw size-5 text-navy" />
-            </span>
+            <Icon3D name="heart" size={112} className="pop mb-4" />
             <h1 style={{ animationDelay: "300ms" }} className="anim-rise text-[34px] leading-[1.1] font-normal tracking-[0.05em] text-gold">Cảm ơn bạn đã góp ý</h1>
             <p style={{ animationDelay: "380ms" }} className="anim-rise mt-2 text-muted">{storeName} đã nhận được góp ý của bạn và sẽ đọc từng ý một.</p>
           </div>

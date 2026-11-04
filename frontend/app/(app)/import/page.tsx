@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon3D } from "@/components/icon3d";
 import { SectionRow, StatusLine } from "@/components/section-row";
 import { useStores } from "@/components/store-context";
 import { api, can, json } from "@/lib/api";
@@ -62,7 +63,10 @@ export default function ImportPage() {
 
   return (
     <div>
-      <h1 className="title">Nhập dữ liệu</h1>
+      <div className="flex items-center gap-4">
+        <Icon3D name="folder" size={64} />
+        <h1 className="title">Nhập dữ liệu</h1>
+      </div>
       <p className="mt-1 mb-4 text-[15px] text-muted">Đánh giá mới được phân tích ngay sau khi nhập vào {store?.name}.</p>
 
       <SectionRow title="Import từ file" description={<>

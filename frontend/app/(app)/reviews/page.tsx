@@ -1,6 +1,7 @@
 "use client";
 
 import { useNegativeAlert } from "@/components/negative-alert";
+import { Icon3D } from "@/components/icon3d";
 import { ReplyBox } from "@/components/reply-box";
 import { AspectChip, SentimentBadge } from "@/components/sentiment-badge";
 import { Skeleton } from "@/components/skeleton";
@@ -130,7 +131,10 @@ function Reviews() {
       {error && <p role="alert" className="mt-4 text-sm">Không tải được đánh giá: {error}</p>}
       {!reviews && !error && <Skeleton lines={6} className="mt-6" />}
       {reviews?.length === 0 && (
-        <p className="mt-4 rounded-lg border border-dashed border-control px-4 py-3 text-sm text-muted">Không có đánh giá nào khớp bộ lọc.</p>
+        <div className="mt-4 flex items-center gap-4 rounded-lg border border-dashed border-control px-4 py-4 text-sm text-muted">
+          <Icon3D name="zoom" size={56} />
+          Không có đánh giá nào khớp bộ lọc.
+        </div>
       )}
 
       {reviews && reviews.length > 0 && (
