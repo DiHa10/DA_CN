@@ -1,31 +1,31 @@
 @import "tailwindcss";
 
-/* Hướng "Limón": quán ăn buổi tối dưới ánh nến. Khung đen ô liu, vùng nội dung kem giấy, chữ xanh rừng,
+/* Hướng "Limón" với màu chủ đạo xanh đen: khung xanh đen, vùng nội dung kem giấy, chữ xanh mực,
    vàng chanh là màu nhấn duy nhất và chỉ đặt trên nền tối (trên nền kem chỉ đạt 1,2:1, không đọc được).
    Phẳng: không bóng, không chuyển màu, bo 1px. Chữ in hoa giãn rộng cho nhãn, nút, tên sản phẩm.
    Xanh/đỏ khen-chê giữ lại vì là nghĩa của dữ liệu, chỉnh về tông trầm cho hợp bảng màu. */
 :root {
-  --olive: #1d0b0d; /* đen ô liu: khung, nút chính trên nền kem */
-  --forest: #103b15; /* xanh rừng: tiêu đề, link */
+  --navy: #0f1a2e; /* xanh đen: khung, nút chính trên nền kem */
+  --blue: #1c3a6e; /* xanh mực: tiêu đề, link */
   --lemon: #f7ea48; /* vàng chanh: chỉ trên nền tối */
   --cream: #fcf9f0;
-  --sage: #dbe2dc;
+  --sage: #d9dee8;
 
   --ground: var(--cream);
   --surface: var(--cream);
-  --raised: #f3efe3;
-  --active: #e9e4d5;
+  --raised: #f1f0ec;
+  --active: #e5e5e2;
   --border: var(--sage);
-  --rule: #e6eae4;
-  --control: #858f85; /* viền ô nhập: 3:1 trên nền kem */
-  --ink: var(--olive);
-  --muted: #5b6459; /* 5,9:1 trên nền kem */
-  --accent: var(--forest);
+  --rule: #e4e8ef;
+  --control: #858c99; /* viền ô nhập: 3:1 trên nền kem */
+  --ink: var(--navy);
+  --muted: #586179; /* 5,9:1 trên nền kem */
+  --accent: var(--blue);
   --positive: #2f7a3e;
   --negative: #b3362b;
   --star: var(--lemon);
-  --primary: var(--olive);
-  --on-dark-muted: #b9b2a3; /* chữ phụ trên nền đen: 9:1 */
+  --primary: var(--navy);
+  --on-dark-muted: #aab4c8; /* chữ phụ trên nền đen: 9:1 */
 }
 
 @theme inline {
@@ -43,8 +43,8 @@
   --color-negative: var(--negative);
   --color-star: var(--star);
   --color-primary: var(--primary);
-  --color-olive: var(--olive);
-  --color-forest: var(--forest);
+  --color-navy: var(--navy);
+  --color-blue: var(--blue);
   --color-lemon: var(--lemon);
   --color-cream: var(--cream);
   --color-sage: var(--sage);
@@ -77,14 +77,14 @@ body {
   }
   /* vùng nền tối: khung ứng dụng, trang đăng nhập, form QR của khách */
   .on-dark {
-    @apply bg-olive text-cream;
+    @apply bg-navy text-cream;
   }
   .title {
-    @apply text-[26px] leading-[1.15] font-medium tracking-[0.03em] text-forest md:text-[30px];
+    @apply text-[26px] leading-[1.15] font-medium tracking-[0.03em] text-blue md:text-[30px];
   }
   /* tiêu đề khối: in hoa, giãn rộng như chữ kẻ trên kính */
   .heading {
-    @apply text-[13px] leading-5 font-semibold tracking-[0.08em] text-forest uppercase;
+    @apply text-[13px] leading-5 font-semibold tracking-[0.08em] text-blue uppercase;
   }
   .panel {
     @apply border border-border bg-surface;
@@ -93,12 +93,12 @@ body {
     @apply inline-flex h-11 md:h-9 cursor-pointer items-center justify-center gap-2 rounded-sm border border-ink bg-transparent px-4 text-[13px] font-semibold tracking-[0.06em] whitespace-nowrap text-ink uppercase transition-colors duration-150 hover:bg-raised active:bg-active disabled:cursor-not-allowed disabled:opacity-60;
   }
   .btn-primary {
-    /* dùng chung với .btn trên nền kem: vàng chanh trên kem mất hết tương phản nên nút chính là đen ô liu */
-    @apply border-olive bg-olive text-cream hover:bg-[#3a2427] active:bg-[#0f0506];
+    /* dùng chung với .btn trên nền kem: vàng chanh trên kem mất hết tương phản nên nút chính là xanh đen */
+    @apply border-navy bg-navy text-cream hover:bg-[#22324f] active:bg-[#080e19];
   }
   .btn-lemon {
     /* nút chính trên nền tối */
-    @apply border-lemon bg-lemon text-olive hover:bg-[#fff36e] active:bg-[#e3d63a];
+    @apply border-lemon bg-lemon text-navy hover:bg-[#fff36e] active:bg-[#e3d63a];
   }
   .input {
     @apply h-11 md:h-10 w-full rounded-sm border border-control bg-white px-3 text-[15px] text-ink placeholder:text-muted;
@@ -107,15 +107,15 @@ body {
     @apply h-11 md:h-9 rounded-sm border border-control bg-white px-2 text-sm text-ink;
   }
   .label {
-    @apply mb-2 block text-[13px] font-semibold tracking-[0.04em] text-forest;
+    @apply mb-2 block text-[13px] font-semibold tracking-[0.04em] text-blue;
   }
   /* lời khách: cỡ đọc thoải mái, màu chữ chính */
   .hand {
     @apply text-[16px] leading-6 text-ink;
   }
-  /* vạch xanh rừng bên trái các khối chứa lời khách */
+  /* vạch xanh mực bên trái các khối chứa lời khách */
   .notebook {
-    border-left: 2px solid var(--forest);
+    border-left: 2px solid var(--blue);
   }
   /* link chữ trên điện thoại: nới vùng bấm lên 44px mà không đẩy bố cục */
   .tap {
@@ -123,13 +123,13 @@ body {
   }
   /* nhãn nhỏ kiểu biển hiệu: chữ vàng trên nền đen */
   .sign {
-    @apply rounded-sm bg-olive px-1.5 text-xs font-semibold tracking-[0.04em] text-lemon;
+    @apply rounded-sm bg-navy px-1.5 text-xs font-semibold tracking-[0.04em] text-lemon;
   }
 }
 
 /* viết ngoài @layer: Tailwind v4 bỏ selector không có class trong @layer components, viền focus từng biến mất */
 :focus-visible {
-  outline: 2px solid var(--forest);
+  outline: 2px solid var(--blue);
   outline-offset: 2px;
 }
 .on-dark :focus-visible {
@@ -151,11 +151,11 @@ body {
 }
 /* tấm kem đặt trong vùng tối (form đăng nhập): trả về màu của nền sáng */
 .on-dark .on-light .label {
-  color: var(--forest);
+  color: var(--blue);
 }
 .on-dark .on-light .text-muted {
   color: var(--muted);
 }
 .on-dark .on-light :focus-visible {
-  outline-color: var(--forest);
+  outline-color: var(--blue);
 }

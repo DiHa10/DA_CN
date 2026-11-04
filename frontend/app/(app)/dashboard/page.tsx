@@ -216,7 +216,7 @@ function Trend({ data }: { data: Summary }) {
   const step = Math.max(avg, ...points.map((p) => p.rate)) > 40 ? 20 : 10;
   const top = (Math.floor(Math.max(avg, ...points.map((p) => p.rate)) / step) + 1) * step;
   const ticks = Array.from({ length: top / step + 1 }, (_, i) => i * step);
-  const axis = { stroke: "transparent", tick: { fill: "#5b6459", fontSize: 12 } };
+  const axis = { stroke: "transparent", tick: { fill: "#586179", fontSize: 12 } };
 
   return (
     <section className="panel px-5 pt-4 pb-3">
@@ -228,13 +228,13 @@ function Trend({ data }: { data: Summary }) {
         : "Chưa có dữ liệu theo tuần"}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={points} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-            <CartesianGrid stroke="#e6eae4" vertical={false} />
+            <CartesianGrid stroke="#e4e8ef" vertical={false} />
             <XAxis dataKey="label" {...axis} tickLine={false} minTickGap={24} />
             <YAxis domain={[0, top]} ticks={ticks} unit="%" {...axis} tickLine={false} />
-            <ReferenceLine y={avg} stroke="#5b6459" strokeDasharray="4 4" />
+            <ReferenceLine y={avg} stroke="#586179" strokeDasharray="4 4" />
             <Tooltip
-              cursor={{ stroke: "#858f85" }}
-              contentStyle={{ border: "1px solid #dbe2dc", borderRadius: 1, background: "#fcf9f0", fontSize: 13, padding: "6px 10px" }}
+              cursor={{ stroke: "#858c99" }}
+              contentStyle={{ border: "1px solid #d9dee8", borderRadius: 1, background: "#fcf9f0", fontSize: 13, padding: "6px 10px" }}
               labelFormatter={(_, p) => (p[0] ? `Tuần từ ${formatDate(p[0].payload.week)}` : "")}
               formatter={(_, __, p) => [`${formatNum(p.payload.rate)}% (${p.payload.neg}/${p.payload.n} đánh giá)`, "Tiêu cực"]}
             />

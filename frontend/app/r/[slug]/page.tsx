@@ -48,7 +48,7 @@ export default function PublicReviewPage() {
         ) : done ? (
           <div>
             <span className="mb-6 flex size-10 items-center justify-center rounded-full bg-lemon">
-              <Check aria-hidden className="size-5 text-olive" />
+              <Check aria-hidden className="size-5 text-navy" />
             </span>
             <h1 className="text-[34px] leading-[1.1] font-normal tracking-[0.05em] text-lemon">Cảm ơn bạn đã góp ý</h1>
             <p className="mt-2 text-muted">{storeName} đã nhận được góp ý của bạn và sẽ đọc từng ý một.</p>

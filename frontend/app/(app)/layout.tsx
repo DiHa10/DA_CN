@@ -24,7 +24,7 @@ function useNav() {
 }
 
 /*
- * Khung chữ L tối (sidebar 236px + top bar 56px, nền đen ô liu) ôm vùng nội dung nền kem, như ô cửa sáng đèn.
+ * Khung chữ L tối (sidebar 236px + top bar 56px, nền xanh đen) ôm vùng nội dung nền kem, như ô cửa sáng đèn.
  * Không viền, không bóng giữa khung và nội dung: hai mảng màu tự tách nhau.
  * Điện thoại: top bar 56px + thanh điều hướng dưới, cùng nền tối.
  */
@@ -32,7 +32,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <StoreProvider>
       <NegativeAlertProvider>
-      <div className="min-h-screen md:grid md:grid-cols-[236px_1fr] md:grid-rows-[56px_1fr] md:bg-olive">
+      <div className="min-h-screen md:grid md:grid-cols-[236px_1fr] md:grid-rows-[56px_1fr] md:bg-navy">
         <Sidebar />
         <TopBar />
         <main className="min-w-0 bg-ground px-4 pt-6 pb-24 md:px-8 md:pt-8 md:pb-10">
@@ -79,7 +79,7 @@ function Sidebar() {
               <Link href="/reviews?sentiment=negative"
                 className="ml-[26px] flex h-8 items-center justify-between px-2.5 text-[13px] text-on-dark-muted transition-colors duration-150 hover:text-cream">
                 Tiêu cực mới
-                <span className="num rounded-sm bg-lemon px-1.5 text-xs font-semibold text-olive">{newIds.size}</span>
+                <span className="num rounded-sm bg-lemon px-1.5 text-xs font-semibold text-navy">{newIds.size}</span>
               </Link>
             )}
             </Fragment>
@@ -103,7 +103,7 @@ function TopBar() {
       {stores && stores.length > 0 && (
         <>
           <label htmlFor="store-select" className="sr-only">Cửa hàng</label>
-          <select id="store-select" className="control min-w-0 max-w-72 flex-1 border-on-dark-muted bg-olive font-medium text-cream md:flex-none" value={store?.id}
+          <select id="store-select" className="control min-w-0 max-w-72 flex-1 border-on-dark-muted bg-navy font-medium text-cream md:flex-none" value={store?.id}
             onChange={(e) => select(Number(e.target.value))}>
             {stores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
@@ -138,7 +138,7 @@ function BottomNav() {
             <span className="relative">
               <Icon aria-hidden strokeWidth={active ? 2 : 1.5} className="size-5" />
               {href === "/reviews" && newIds.size > 0 && (
-                <span className="num absolute -top-1.5 left-3.5 rounded-sm bg-lemon px-1 text-[11px] leading-4 font-semibold text-olive">
+                <span className="num absolute -top-1.5 left-3.5 rounded-sm bg-lemon px-1 text-[11px] leading-4 font-semibold text-navy">
                   {newIds.size}<span className="sr-only"> đánh giá tiêu cực mới</span>
                 </span>
               )}
