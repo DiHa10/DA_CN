@@ -88,7 +88,7 @@ export default function DashboardPage() {
 // Tỉ lệ chê 7 ngày qua tăng vọt so với 8 tuần trước: đặt trên cùng vì cần xử lý ngay, không đợi báo cáo tuần
 function AnomalyStrip({ data }: { data: Anomalies }) {
   return (
-    <section aria-label="Cảnh báo bất thường" className="on-dark px-5 py-4">
+    <section aria-label="Cảnh báo bất thường" className="on-dark rounded-lg px-5 py-4">
       <h2 className="text-[13px] font-semibold tracking-[0.08em] text-gold uppercase">Bất thường trong 7 ngày qua</h2>
       <ul className="mt-1 space-y-1 text-sm">
         {data.alerts.map((a) => {
@@ -234,7 +234,7 @@ function Trend({ data }: { data: Summary }) {
             <ReferenceLine y={avg} stroke="#586179" strokeDasharray="4 4" />
             <Tooltip
               cursor={{ stroke: "#858c99" }}
-              contentStyle={{ border: "1px solid #d9dee8", borderRadius: 1, background: "#fcf9f0", fontSize: 13, padding: "6px 10px" }}
+              contentStyle={{ border: "1px solid #d9dee8", borderRadius: 6, background: "#fcf9f0", fontSize: 13, padding: "6px 10px" }}
               labelFormatter={(_, p) => (p[0] ? `Tuần từ ${formatDate(p[0].payload.week)}` : "")}
               formatter={(_, __, p) => [`${formatNum(p.payload.rate)}% (${p.payload.neg}/${p.payload.n} đánh giá)`, "Tiêu cực"]}
             />

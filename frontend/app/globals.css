@@ -2,7 +2,7 @@
 
 /* Hướng "Limón" với màu chủ đạo xanh đen: khung xanh đen, vùng nội dung kem giấy, chữ xanh mực,
    vàng đồng là màu nhấn duy nhất và chỉ đặt trên nền tối (trên nền kem chỉ đạt 1,9:1, không đọc được).
-   Phẳng: không bóng, không chuyển màu, bo 1px. Chữ in hoa giãn rộng cho nhãn, nút, tên sản phẩm.
+   Phẳng: không bóng, không chuyển màu, bo góc nhẹ. Chữ in hoa giãn rộng cho nhãn, nút, tên sản phẩm.
    Xanh/đỏ khen-chê giữ lại vì là nghĩa của dữ liệu, chỉnh về tông trầm cho hợp bảng màu. */
 :root {
   --navy: #0f1a2e; /* xanh đen: khung, nút chính trên nền kem */
@@ -52,15 +52,15 @@
   --font-sans: var(--font-ui), system-ui, sans-serif;
 }
 
-/* bo góc gần như bằng 0 ở mọi nơi; chỉ nút tròn (rounded-full) giữ nguyên */
+/* bo góc nhẹ: nút, ô nhập, nhãn 4px; khối nội dung 8px */
 @theme {
-  --radius-xs: 1px;
-  --radius-sm: 1px;
-  --radius-md: 1px;
-  --radius-lg: 1px;
-  --radius-xl: 1px;
-  --radius-2xl: 1px;
-  --radius-3xl: 1px;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-2xl: 12px;
+  --radius-3xl: 16px;
 }
 
 body {
@@ -87,7 +87,7 @@ body {
     @apply text-[13px] leading-5 font-semibold tracking-[0.08em] text-blue uppercase;
   }
   .panel {
-    @apply border border-border bg-surface;
+    @apply rounded-lg border border-border bg-surface;
   }
   .btn {
     @apply inline-flex h-11 md:h-9 cursor-pointer items-center justify-center gap-2 rounded-sm border border-ink bg-transparent px-4 text-[13px] font-semibold tracking-[0.06em] whitespace-nowrap text-ink uppercase transition-colors duration-150 hover:bg-raised active:bg-active disabled:cursor-not-allowed disabled:opacity-60;
