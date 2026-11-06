@@ -6,7 +6,26 @@
 - `frontend/`: Next.js
 - `ml/`: train và đánh giá model ABSA (từ điển / TF-IDF / PhoBERT) trên VLSP 2018 nhà hàng
 
-## Chạy nhanh sau khi clone (Windows)
+## Chạy bằng Docker (một lệnh, nên dùng)
+Chỉ cần cài [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows: bật WSL2 khi được hỏi). Không cần Python, Node, PostgreSQL hay Ollama.
+
+1. (Tùy chọn) Đặt model PhoBERT đã train vào `ml/models/absa/` (518 MB, không có trong git, xin nhóm qua Drive). Không có thì hệ thống tự dùng bộ từ điển, độ chính xác thấp hơn.
+2. (Tùy chọn) Chép `.env.example` thành `.env` để đặt khóa bí mật, Gmail.
+3. Chạy tại thư mục repo:
+```bash
+docker compose up -d --build
+```
+Lần đầu mất 10–20 phút (tải image, cài thư viện, tải model Qwen ~2 GB). Xong thì mở http://localhost:3000 và bấm Đăng ký.
+
+Tạo sẵn tài khoản và dữ liệu demo (`demo@example.test` / `demo12345`):
+```bash
+docker compose exec backend python seed.py
+```
+Cập nhật code mới: `git pull` rồi chạy lại `docker compose up -d --build` (chỉ build lại phần đã đổi, dữ liệu giữ nguyên). Tắt: `docker compose down`. Xem log backend: `docker compose logs -f backend`.
+
+Chạy trong Docker, PhoBERT và Qwen dùng CPU nên chậm hơn chạy trực tiếp trên máy có GPU.
+
+## Chạy nhanh sau khi clone, không dùng Docker (Windows)
 Cần cài: Git, Python 3.12, Node.js 20 trở lên. Chạy các lệnh dưới trong **Git Bash**, tại thư mục repo.
 
 **1. Backend** (dùng SQLite, không cần cài PostgreSQL):

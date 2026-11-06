@@ -12,3 +12,4 @@ backend/outbox/
 .ollama/
 ml/scrape/raw/
 ml/scrape/out/
+.env

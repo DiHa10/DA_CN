@@ -1,14 +1,70 @@
+# Chạy cả dự án bằng một lệnh:  docker compose up -d --build   rồi mở http://localhost:3000
+# Lần đầu: tải image, build, tải model Qwen (~2 GB) nên mất 10-20 phút. Các lần sau chỉ build lại phần code đã sửa.
+# Biến môi trường (khóa bí mật, Gmail...) đặt trong file .env cạnh file này, xem .env.example.
+
 services:
   db:
-    image: postgres:16
+    image: postgres:16-alpine
     environment:
       POSTGRES_USER: feedback
       POSTGRES_PASSWORD: feedback
       POSTGRES_DB: feedback
-    ports:
-      - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data  # dữ liệu giữ lại qua các lần build / tắt bật
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U feedback"]
+      interval: 3s
+      retries: 20
+
+  ollama:
+    image: ollama/ollama:0.5.7
+    volumes:
+      - ollama:/root/.ollama
+
+  # chạy một lần: tải model Qwen vào volume của ollama (lần sau đã có thì xong ngay)
+  ollama-pull:
+    image: ollama/ollama:0.5.7
+    environment:
+      OLLAMA_HOST: ollama:11434
+    command: ["pull", "${LLM_MODEL:-qwen2.5:3b}"]
+    depends_on:
+      - ollama
+    restart: on-failure
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://feedback:feedback@db:5432/feedback
+      # model PhoBERT không nằm trong git (518 MB): đặt vào ml/models/absa. Không có thì backend tự dùng bộ từ điển
+      NLP_MODEL_DIR: /models/absa
+      OLLAMA_URL: http://ollama:11434
+      LLM_MODEL: ${LLM_MODEL:-qwen2.5:3b}
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-change-me}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+    volumes:
+      - ./ml/models:/models:ro
+      - ./backend/outbox:/app/outbox  # email khi chưa cấu hình Gmail: mở file .eml ở backend/outbox để xem
+    depends_on:
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    environment:
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
 
 volumes:
   pgdata:
+  ollama:
