@@ -65,6 +65,7 @@ export default function LoginPage() {
               autoComplete={isLogin ? "current-password" : "new-password"} className="input"
               aria-describedby={isLogin ? undefined : "password-hint"} />
             {!isLogin && <p id="password-hint" className="mt-1 text-xs text-muted">Tối thiểu 8 ký tự.</p>}
+            {isLogin && <Link href="/forgot" className="tap mt-2 inline-block text-xs font-medium text-accent hover:underline">Quên mật khẩu?</Link>}
           </div>
           {error && <p role="alert" className="text-sm text-negative">{error}</p>}
           <button type="submit" disabled={loading} className="btn btn-primary btn-go h-11 w-full">

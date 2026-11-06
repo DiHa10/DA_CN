@@ -5,7 +5,7 @@ import { Icon3D } from "@/components/icon3d";
 import { NegativeAlertProvider, useNegativeAlert } from "@/components/negative-alert";
 import { StoreProvider, useStores } from "@/components/store-context";
 import { can } from "@/lib/api";
-import { Columns3, ExternalLink, LayoutDashboard, LogOut, MessagesSquare, Store, Upload } from "lucide-react";
+import { Columns3, ExternalLink, LayoutDashboard, LogOut, MessagesSquare, Store, Upload, UserRound } from "lucide-react";
 import Link from "next/link";
 import { Fragment } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -87,8 +87,13 @@ function Sidebar() {
           );
         })}
       </nav>
+      <Link href="/account" aria-current={pathname.startsWith("/account") ? "page" : undefined}
+        className={`mt-auto flex h-9 items-center gap-2.5 rounded-sm border px-2.5 text-[13px] font-medium tracking-[0.06em] uppercase transition-colors duration-150 ${
+          pathname.startsWith("/account") ? "border-white text-cream" : "border-transparent text-on-dark-muted hover:text-cream"}`}>
+        <UserRound aria-hidden strokeWidth={1.5} className="size-4" /> Tài khoản
+      </Link>
       <button onClick={logout}
-        className="mt-auto mb-5 flex h-9 cursor-pointer items-center gap-2.5 px-2.5 text-[13px] font-medium tracking-[0.06em] text-on-dark-muted uppercase transition-colors duration-150 hover:text-cream">
+        className="mb-5 flex h-9 cursor-pointer items-center gap-2.5 px-2.5 text-[13px] font-medium tracking-[0.06em] text-on-dark-muted uppercase transition-colors duration-150 hover:text-cream">
         <LogOut aria-hidden strokeWidth={1.5} className="size-4" /> Đăng xuất
       </button>
     </aside>
@@ -116,8 +121,12 @@ function TopBar() {
           Form đánh giá của khách <ExternalLink aria-hidden strokeWidth={1.5} className="size-3.5" />
         </a>
       )}
+      <Link href="/account" aria-label="Tài khoản"
+        className="ml-auto flex size-11 items-center justify-center text-on-dark-muted hover:text-cream md:hidden">
+        <UserRound aria-hidden strokeWidth={1.5} className="size-5" />
+      </Link>
       <button onClick={logout} aria-label="Đăng xuất"
-        className="ml-auto flex size-11 cursor-pointer items-center justify-center text-on-dark-muted hover:text-cream md:hidden">
+        className="flex size-11 cursor-pointer items-center justify-center text-on-dark-muted hover:text-cream md:hidden">
         <LogOut aria-hidden strokeWidth={1.5} className="size-5" />
       </button>
     </header>

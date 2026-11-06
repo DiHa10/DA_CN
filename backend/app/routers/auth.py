@@ -1,3 +1,7 @@
+import logging
+import os
+from email.message import EmailMessage
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
@@ -6,8 +10,12 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..models import User
 from ..ratelimit import SlidingWindow
-from ..schemas import Token, UserCreate
-from ..security import create_token, hash_password, verify_password
+from ..schemas import ForgotIn, PasswordChange, ResetIn, Token, UserCreate
+from ..security import (create_reset_token, create_token, get_current_user, hash_password, user_from_reset_token,
+                        verify_password)
+from ..services.weekly_report import DeliveryError, deliver
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -36,3 +44,55 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Sai email hoặc mật khẩu")
     failed_logins.reset(email)
     return Token(access_token=create_token(user.id))
+
+
+# shortcut: đổi mật khẩu không thu hồi token đăng nhập cũ (hết hạn sau 12 giờ); cần thu hồi ngay thì lưu "phiên bản token" trong User
+@router.post("/change-password")
+def change_password(body: PasswordChange, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    failed_logins.check(user.email)  # đoán mật khẩu hiện tại qua đây cũng là dò mật khẩu
+    if not verify_password(body.current_password, user.password_hash):
+        failed_logins.hit(user.email)
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Mật khẩu hiện tại không đúng")
+    user.password_hash = hash_password(body.new_password)
+    db.commit()
+    return {"ok": True}
+
+
+# chống dùng chức năng này để gửi thư rác tới một hộp thư
+forgot_limit = SlidingWindow(3, 3600, "Đã gửi nhiều link đặt lại cho email này, thử lại sau 1 giờ")
+APP_URL = os.getenv("APP_URL", "http://localhost:3000")
+
+
+@router.post("/forgot")
+def forgot_password(body: ForgotIn, db: Session = Depends(get_db)):
+    """Luôn trả cùng một câu, có tài khoản hay không: không để người ngoài dò email nào đã đăng ký."""
+    email = body.email.strip().lower()
+    forgot_limit.hit(email)
+    user = db.scalar(select(User).where(User.email == email))
+    if user:
+        msg = EmailMessage()
+        msg["Subject"] = "[Quán Nghe] Đặt lại mật khẩu"
+        msg["From"] = os.getenv("SMTP_FROM") or os.getenv("SMTP_USER") or "quan-nghe@localhost"
+        msg["To"] = user.email
+        msg.set_content("\n".join([
+            "Bấm link sau để đặt mật khẩu mới (hết hạn sau 30 phút):",
+            f"{APP_URL}/reset?token={create_reset_token(user)}",
+            "",
+            "Nếu bạn không yêu cầu, bỏ qua email này: mật khẩu cũ vẫn dùng được.",
+        ]))
+        try:
+            deliver(msg, "reset")
+        except DeliveryError:
+            log.exception("password reset email failed")
+    return {"ok": True}
+
+
+@router.post("/reset")
+def reset_password(body: ResetIn, db: Session = Depends(get_db)):
+    user = user_from_reset_token(body.token, db)
+    if not user:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Link đặt lại đã hết hạn hoặc đã được dùng, hãy yêu cầu link mới")
+    user.password_hash = hash_password(body.password)
+    db.commit()
+    failed_logins.reset(user.email)
+    return {"ok": True}

@@ -1,3 +1,4 @@
+import hashlib
 import os
 from datetime import datetime, timedelta, timezone
 
@@ -35,10 +36,36 @@ def create_token(user_id: int) -> str:
     return jwt.encode({"sub": str(user_id), "exp": exp}, SECRET_KEY, algorithm="HS256")
 
 
+RESET_TTL = timedelta(minutes=30)
+
+
+def _fingerprint(user: User) -> str:
+    return hashlib.sha256(user.password_hash.encode()).hexdigest()[:16]
+
+
+def create_reset_token(user: User) -> str:
+    """Token đặt lại mật khẩu: gắn dấu vân tay mật khẩu hiện tại, nên đổi mật khẩu xong là token cũ hết hiệu lực."""
+    exp = datetime.now(timezone.utc) + RESET_TTL
+    return jwt.encode({"sub": str(user.id), "purpose": "reset", "fp": _fingerprint(user), "exp": exp}, SECRET_KEY, algorithm="HS256")
+
+
+def user_from_reset_token(token: str, db: Session) -> User | None:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user = db.get(User, int(payload["sub"]))
+    except (jwt.PyJWTError, KeyError, ValueError):
+        return None
+    ok = user and payload.get("purpose") == "reset" and payload.get("fp") == _fingerprint(user)
+    return user if ok else None
+
+
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
     try:
-        user_id = int(jwt.decode(token, SECRET_KEY, algorithms=["HS256"])["sub"])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        user_id = int(payload["sub"])
     except (jwt.PyJWTError, KeyError, ValueError):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token không hợp lệ")
+    if payload.get("purpose"):  # token đặt lại mật khẩu ký cùng khóa: không được dùng để đăng nhập
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token không hợp lệ")
     user = db.get(User, user_id)
     if not user:
