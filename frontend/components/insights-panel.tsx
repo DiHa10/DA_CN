@@ -2,7 +2,7 @@
 
 import { api, type Insight } from "@/lib/api";
 import { ASPECT_LABEL } from "@/lib/labels";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Busy } from "./dots";
 import { Icon3D } from "./icon3d";
@@ -72,9 +72,11 @@ export function InsightsPanel({ storeId, canRegenerate }: { storeId: number; can
       <div className="mb-2 flex items-center justify-between gap-3">
         <h2 className="heading">Gợi ý cải thiện</h2>
         {canRegenerate && (
-          <button className="tap cursor-pointer text-sm font-medium text-accent hover:underline disabled:cursor-wait disabled:text-muted disabled:no-underline"
-            onClick={regenerate} disabled={busy}>
-            {busy ? <Busy text="AI đang đọc" /> : insight ? "Cập nhật" : "Tạo gợi ý"}
+          // nút thật (không phải link chữ): chủ quán dễ bỏ qua tính năng AI nếu nó chỉ là chữ nhỏ
+          <button className="btn btn-primary disabled:cursor-wait" onClick={regenerate} disabled={busy}
+            title="AI đọc lại đánh giá tiêu cực 30 ngày qua và viết gợi ý mới">
+            <Sparkles aria-hidden className="size-4 text-gold" />
+            {busy ? <Busy text="AI đang đọc" /> : insight ? "Cập nhật gợi ý AI" : "Tạo gợi ý AI"}
           </button>
         )}
       </div>
@@ -89,7 +91,7 @@ export function InsightsPanel({ storeId, canRegenerate }: { storeId: number; can
         {insight === null && !error && (
           <div className="flex items-center gap-3 px-4 py-3 text-sm text-muted">
             <Icon3D name="bulb" size={48} />
-            {canRegenerate ? "Chưa có gợi ý. Bấm “Tạo gợi ý”." : "Chưa có gợi ý. Quản lý hoặc chủ quán tạo gợi ý."}
+            {canRegenerate ? "Chưa có gợi ý. Bấm “Tạo gợi ý AI”." : "Chưa có gợi ý. Quản lý hoặc chủ quán tạo gợi ý."}
           </div>
         )}
 
