@@ -1,9 +1,14 @@
 """Fine-tune PhoBERT cho ABSA 6 khía cạnh. Vừa GPU 4GB: fp16, batch 8, max_len 256.
 
 Chạy: python ml/train_absa.py [--epochs 6] [--batch 8]   -> ml/models/absa/ (checkpoint tốt nhất theo F1 trên tập val)
+
+Huấn luyện thêm bằng review thật đã gán nhãn (short_test.py --set real_train eval tạo ra gold.jsonl), tiếp từ model
+đang dùng và lưu ra thư mục riêng để so sánh trước khi thay:
+  python ml/train_absa.py --init ml/models/absa --extra ml/real_train/gold.jsonl --out ml/models/absa_real --epochs 3 --lr 1e-5
 """
 
 import argparse
+import json
 import random
 import sys
 import time
@@ -12,6 +17,8 @@ import numpy as np
 import torch
 from sklearn.metrics import f1_score
 from torch import nn
+from pathlib import Path
+
 from transformers import AutoTokenizer, get_linear_schedule_with_warmup
 
 from data import ROOT, load
@@ -56,14 +63,27 @@ def main():
     ap.add_argument("--epochs", type=int, default=6)
     ap.add_argument("--batch", type=int, default=8)
     ap.add_argument("--lr", type=float, default=3e-5)
+    ap.add_argument("--init", type=Path, help="tiếp tục từ checkpoint này thay vì PhoBERT gốc")
+    ap.add_argument("--extra", type=Path, nargs="*", default=[], help="file jsonl {text, seg, labels} thêm vào tập train")
+    ap.add_argument("--extra-times", type=int, default=5, help="lặp dữ liệu thêm N lần: vài chục câu lẫn trong ~3000 câu VLSP")
+    ap.add_argument("--out", type=Path, default=OUT)
     args = ap.parse_args()
 
     random.seed(42)
     torch.manual_seed(42)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     train, val = load("train"), load("val")
-    tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
-    model = AbsaModel().to(device)
+    for path in args.extra:
+        with open(path, encoding="utf-8") as f:
+            rows = [json.loads(line) for line in f]
+        train += rows * args.extra_times
+        print(f"+ {len(rows)} câu từ {path} (x{args.extra_times})")
+    # val vẫn là VLSP: chọn checkpoint theo dữ liệu chưa dùng để huấn luyện; đo trên review thật bằng short_test.py --set real_test
+    tokenizer = AutoTokenizer.from_pretrained(args.init or BASE_MODEL)
+    model = AbsaModel(str(args.init) if args.init else BASE_MODEL)
+    if args.init:
+        model.head.load_state_dict(torch.load(args.init / "head.pt", map_location="cpu", weights_only=True))
+    model = model.to(device)
 
     # "không nhắc" chiếm đa số: trọng số nghịch đảo tần suất cho từng khía cạnh, chặn trên để không quá gắt
     counts = torch.ones(len(ASPECTS), len(LABELS))
@@ -100,8 +120,8 @@ def main():
         print(f"epoch {epoch}: loss {total:.1f}  val macro-F1 {f1:.4f}  ({time.time() - start:.0f}s)", flush=True)
         if f1 > best:
             best = f1
-            model.save(OUT, tokenizer)
-            print(f"  -> saved best to {OUT}", flush=True)
+            model.save(args.out, tokenizer)
+            print(f"  -> saved best to {args.out}", flush=True)
     print(f"best val macro-F1 {best:.4f}")
 
 

@@ -10,6 +10,8 @@ Mục đích: đo model trên câu ngắn giống góp ý khách gửi qua mã Q
 4. Lưu lại đúng định dạng CSV (Excel: *Save As → CSV UTF-8*), giữ nguyên tên cột và tên file.
 5. Chấm điểm: `../backend/.venv/Scripts/python -X utf8 short_test.py eval` → `reports/short_results.md`.
 
+Tập review thật (`real_test`, `real_train`, tạo bằng `export_real.py`) gán nhãn y hệt, chỉ thêm `--set <tên tập>` ngay sau `short_test.py` ở bước 1 và 5. Review thật dài hơn câu ngắn: một câu có thể nhắc nhiều khía cạnh, gán từng cột theo đúng phần nói về khía cạnh đó.
+
 ## Mã nhãn (mỗi cột là một khía cạnh)
 | Mã | Nghĩa |
 |---|---|

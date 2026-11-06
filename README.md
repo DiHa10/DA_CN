@@ -84,6 +84,17 @@ Kết quả: `ml/reports/results.md`, `ml/reports/confusion_phobert.png`.
 
 Tập test review ngắn (nhóm tự gán nhãn): xem `ml/short_test/HUONG_DAN.md`, kết quả ở `ml/reports/short_results.md`.
 
+Đo và huấn luyện thêm bằng **review thật** (Google Maps, QR) trong DB, theo thứ tự:
+1. Tách review thật thành tập đo và tập huấn luyện (không trùng câu): `export_real.py --store <id quán>` → `ml/real_test/`, `ml/real_train/` (không đưa lên git, chia sẻ qua Drive).
+2. Nhóm gán nhãn cả hai tập như hướng dẫn trên, thêm `--set real_test` / `--set real_train` vào lệnh `short_test.py init` và `eval`.
+3. `short_test.py --set real_train eval` ghi nhãn chuẩn ra `ml/real_train/gold.jsonl`; huấn luyện thêm từ model đang dùng:
+```bash
+../backend/.venv/Scripts/python -X utf8 train_absa.py --init models/absa --extra real_train/gold.jsonl --out models/absa_real --epochs 3 --lr 1e-5
+```
+4. `short_test.py --set real_test eval` so sánh "PhoBERT" với "PhoBERT + review thật" → `ml/reports/real_test_results.md`. Bản mới tốt hơn thì chép `models/absa_real` đè lên `models/absa`.
+
+Nhãn chủ quán sửa tay trong web: `export_corrections.py` → `ml/reports/corrections.csv` (xem model hay sai ở đâu).
+
 Đo phát hiện spam (khoảng 3 phút) và mô phỏng cảnh báo bất thường:
 ```bash
 ../backend/.venv/Scripts/python -X utf8 eval_spam.py

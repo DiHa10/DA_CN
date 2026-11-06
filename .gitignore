@@ -13,3 +13,5 @@ backend/outbox/
 ml/scrape/raw/
 ml/scrape/out/
 .env
+ml/real_test/
+ml/real_train/

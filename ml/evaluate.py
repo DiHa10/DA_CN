@@ -33,8 +33,8 @@ def predict_baseline(rows):
     return [{a: preds[a][i] for a in ASPECTS} for i in range(len(rows))]
 
 
-def predict_phobert(rows):
-    out = AbsaPredictor(PHOBERT_DIR).predict([r["seg"] for r in rows], segmented=True)
+def predict_phobert(rows, model_dir=PHOBERT_DIR):
+    out = AbsaPredictor(model_dir).predict([r["seg"] for r in rows], segmented=True)
     return [{a: o.get(a, ("none", 0))[0] for a in ASPECTS} for o in out]
 
 
