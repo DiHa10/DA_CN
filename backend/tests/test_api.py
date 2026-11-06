@@ -153,3 +153,18 @@ def test_public_analyze_demo(client):
     for _ in range(19):
         client.post("/public/analyze", json={"text": "Ngon"})
     assert client.post("/public/analyze", json={"text": "Ngon"}).status_code == 429  # 20 lần/phút mỗi IP
+
+
+def test_dashboard_days_filter(client):
+    from datetime import datetime, timedelta, timezone
+    h = auth_headers(client)
+    store = make_store(client, h)
+    old = (datetime.now(timezone.utc) - timedelta(days=60)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    csv = f"content,created_at\nPhở ngon,{old}\nNhân viên thô lỗ,{datetime.now(timezone.utc):%Y-%m-%dT%H:%M:%SZ}\n"
+    client.post(f"/stores/{store['id']}/reviews/import", files={"file": ("r.csv", csv.encode())}, headers=h)
+    url = f"/stores/{store['id']}/dashboard"
+    assert client.get(url, headers=h).json()["total"] == 2
+    recent = client.get(url, params={"days": 30}, headers=h).json()
+    assert recent["total"] == 1 and recent["sentiment"]["negative"] == 1
+    assert recent["since"] == str((datetime.now(timezone(timedelta(hours=7))) - timedelta(days=29)).date())
+    assert client.get(url, params={"days": 0}, headers=h).status_code == 422

@@ -17,23 +17,42 @@ const MIN_MENTIONS = 3; // khía cạnh ít lượt nhắc quá thì tỉ lệ k
 const negRate = (a: AspectRow) => (a.total ? a.negative / a.total : 0);
 const pct0 = (r: number) => `${Math.round(r * 100)}%`;
 
+// khoảng thời gian tính số liệu; chủ quán thường cần "tháng này" hơn là cả lịch sử
+const RANGES = [["7", "7 ngày"], ["30", "30 ngày"], ["90", "3 tháng"], ["all", "Tất cả"]] as const;
+type Range = (typeof RANGES)[number][0];
+const RANGE_KEY = "dashRange";
+
 export default function DashboardPage() {
   const { store } = useStores();
   const [data, setData] = useState<Summary | null>(null);
   const [recent, setRecent] = useState<Review[] | null>(null);
   const [anomalies, setAnomalies] = useState<Anomalies | null>(null);
   const [error, setError] = useState("");
+  const [range, setRange] = useState<Range>("30");
+
+  // nhớ khoảng đã chọn trên máy này (chỉ là tiện ích hiển thị, mất cũng không sao)
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem(RANGE_KEY);
+      if (RANGES.some(([k]) => k === v)) setRange(v as Range);
+    } catch {}
+  }, []);
+  const pick = (r: Range) => {
+    setRange(r);
+    try { localStorage.setItem(RANGE_KEY, r); } catch {}
+  };
 
   const load = useCallback(() => {
     if (!store) return;
     setError("");
     Promise.all([
-      api<Summary>(`/stores/${store.id}/dashboard`),
+      api<Summary>(`/stores/${store.id}/dashboard${range === "all" ? "" : `?days=${range}`}`),
       api<Review[]>(`/stores/${store.id}/reviews?sentiment=negative&hidden=false&limit=3`),
       api<Anomalies>(`/stores/${store.id}/dashboard/anomalies`),
     ]).then(([s, r, a]) => { setData(s); setRecent(r); setAnomalies(a); }, (e) => setError(e.message));
-  }, [store]);
+  }, [store, range]);
   useEffect(load, [load]);
+  const rangeLabel = RANGES.find(([k]) => k === range)![1];
 
   const aspects = [...(data?.aspects ?? [])]
     .filter((a) => a.total >= MIN_MENTIONS)
@@ -51,7 +70,18 @@ export default function DashboardPage() {
               : "Chưa có khía cạnh nào bị chê."}
           </p>
         </div>
-        {can(store, "manager") && <Link href="/import" className="btn btn-primary btn-go">Nhập đánh giá</Link>}
+        <div className="flex flex-wrap items-center gap-3">
+          <div role="group" aria-label="Khoảng thời gian" className="flex rounded-sm border border-control p-0.5">
+            {RANGES.map(([k, label]) => (
+              <button key={k} type="button" aria-pressed={range === k} onClick={() => pick(k)}
+                className={`h-11 cursor-pointer rounded-sm px-3 text-[13px] font-medium transition-colors duration-150 md:h-8 ${
+                  range === k ? "bg-navy text-cream" : "text-muted hover:text-ink"}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {can(store, "manager") && <Link href="/import" className="btn btn-primary btn-go">Nhập đánh giá</Link>}
+        </div>
       </header>
 
       {error && (
@@ -72,15 +102,17 @@ export default function DashboardPage() {
 
       {data && data.analyzed === 0 && (
         <div className="rounded-lg border border-dashed border-control px-4 py-3 text-sm text-muted">
-          Chưa có đánh giá nào. Import file từ Google Maps hoặc in mã QR ở trang Cửa hàng để khách gửi góp ý.
+          {data.since
+            ? `Không có đánh giá nào trong ${rangeLabel.toLowerCase()} qua. Chọn khoảng dài hơn ở trên.`
+            : "Chưa có đánh giá nào. Import file từ Google Maps hoặc in mã QR ở trang Cửa hàng để khách gửi góp ý."}
         </div>
       )}
 
       {data && data.analyzed > 0 && (
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_384px]">
           <div className="min-w-0 space-y-6">
-            <Kpis data={data} />
-            <AspectBoard aspects={aspects} />
+            <Kpis data={data} rangeLabel={rangeLabel} />
+            <AspectBoard aspects={aspects} since={data.since} />
             <Trend data={data} />
           </div>
           <div className="space-y-6">
@@ -118,7 +150,7 @@ function AnomalyStrip({ data }: { data: Anomalies }) {
   );
 }
 
-function Kpis({ data }: { data: Summary }) {
+function Kpis({ data, rangeLabel }: { data: Summary; rangeLabel: string }) {
   const s = data.sentiment;
   const since = new Date(Date.now() - 28 * 86400e3).toISOString().slice(0, 10);
   const last4 = data.trend.filter((w) => w.week_start > since).reduce((n, w) => n + w.positive + w.neutral + w.negative, 0);
@@ -127,7 +159,7 @@ function Kpis({ data }: { data: Summary }) {
     {
       label: "Đánh giá",
       value: data.total.toLocaleString("vi-VN"),
-      note: pending ? `${pending} đang chờ phân tích` : `${last4} trong 4 tuần gần nhất`,
+      note: pending ? `${pending} đang chờ phân tích` : data.since ? `trong ${rangeLabel.toLowerCase()} qua` : `${last4} trong 4 tuần gần nhất`,
     },
     { label: "Tích cực", value: formatPct(s.positive, data.analyzed), note: `${s.positive} đánh giá` },
     { label: "Tiêu cực", value: formatPct(s.negative, data.analyzed), note: `${s.negative} đánh giá` },
@@ -167,7 +199,7 @@ function Legend() {
 }
 
 // Dấu ấn riêng: mỗi khía cạnh một thanh chê | trung lập | khen, kèm lời chê gần nhất của khách
-function AspectBoard({ aspects }: { aspects: AspectRow[] }) {
+function AspectBoard({ aspects, since }: { aspects: AspectRow[]; since: string | null }) {
   return (
     <section className="panel">
       <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-4">
@@ -186,7 +218,7 @@ function AspectBoard({ aspects }: { aspects: AspectRow[] }) {
             return (
               <li key={a.aspect} className="border-t border-rule px-5 py-3 first:border-t-0">
                 <div className="grid grid-cols-[116px_minmax(0,1fr)_44px] items-center gap-3 sm:gap-4 sm:grid-cols-[132px_minmax(0,1fr)_72px]">
-                  <Link href={`/reviews?aspect=${a.aspect}&sentiment=negative`} className="tap truncate font-medium hover:underline">
+                  <Link href={`/reviews?aspect=${a.aspect}&sentiment=negative${since ? `&date_from=${since}` : ""}`} className="tap truncate font-medium hover:underline">
                     {label} <span className="num font-normal text-muted">{a.total}</span>
                   </Link>
                   <div className="grow-x flex h-2.5 gap-0.5 overflow-hidden rounded-sm" role="img" style={{ animationDelay: `${i * 40}ms` }}

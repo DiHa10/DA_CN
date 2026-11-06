@@ -1,7 +1,7 @@
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -9,7 +9,7 @@ from ..db import get_db
 from ..models import Review, Store, counted
 from ..security import staff_store
 from ..services import anomaly
-from ..timeutil import as_utc, vn_date
+from ..timeutil import as_utc, vn_date, vn_day_start
 
 router = APIRouter(prefix="/stores/{store_id}/dashboard", tags=["dashboard"])
 
@@ -17,9 +17,15 @@ SENTIMENTS = ("positive", "neutral", "negative")
 
 
 @router.get("")
-def summary(store: Store = Depends(staff_store), db: Session = Depends(get_db)):
+def summary(days: int | None = Query(None, ge=1, le=3650), store: Store = Depends(staff_store), db: Session = Depends(get_db)):
+    """days: chỉ tính review trong N ngày gần nhất (theo ngày VN, tính cả hôm nay); bỏ trống là toàn bộ lịch sử."""
+    q = select(Review).where(Review.store_id == store.id, counted())
+    since = None
+    if days:
+        since = vn_date(datetime.now(timezone.utc)) - timedelta(days=days - 1)
+        q = q.where(Review.created_at >= vn_day_start(since))
     # shortcut: tổng hợp trong Python, ổn tới vài chục nghìn review; chuyển sang GROUP BY trong SQL nếu chậm
-    reviews = db.scalars(select(Review).where(Review.store_id == store.id, counted())).all()
+    reviews = db.scalars(q).all()
     analyzed = [r for r in reviews if r.analysis]
 
     totals = Counter(r.analysis.sentiment for r in analyzed)
@@ -42,6 +48,7 @@ def summary(store: Store = Depends(staff_store), db: Session = Depends(get_db)):
     aspect_rows = [{"aspect": a, **row(c), "total": sum(c.values()), "latest_negative": latest_negative.get(a)}
                    for a, c in aspects.items()]
     return {
+        "since": since.isoformat() if since else None,  # để link sang trang Đánh giá lọc đúng cùng khoảng
         "total": len(reviews),
         "analyzed": len(analyzed),
         "sentiment": row(totals),

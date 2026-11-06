@@ -52,6 +52,7 @@ export type AspectRow = {
 } & Counts;
 
 export type Summary = {
+  since: string | null;
   total: number;
   analyzed: number;
   sentiment: Counts;
