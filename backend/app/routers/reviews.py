@@ -33,6 +33,7 @@ def filtered_reviews(
     replied: bool | None = None,
     spam: bool | None = None,
     hidden: bool | None = None,
+    search: str | None = Query(None, alias="q", max_length=100),
 ):
     """Bộ lọc dùng chung cho danh sách và file Excel, để file xuất ra khớp đúng những gì đang xem."""
     q = select(Review).where(Review.store_id == store.id)
@@ -49,6 +50,10 @@ def filtered_reviews(
         q = q.where(Review.created_at >= vn_day_start(date_from))
     if date_to:
         q = q.where(Review.created_at < vn_day_start(date_to + timedelta(days=1)))
+    if search and search.strip():
+        # tìm chữ trong nội dung (cụm từ bị chê ở Tổng quan dẫn sang đây); %, _ người dùng gõ là chữ thường, không phải ký tự đại diện
+        term = search.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        q = q.where(Review.content.ilike(f"%{term}%", escape="\\"))
     if spam is not None:
         q = q.where(Review.spam_reasons.is_not(None) if spam else Review.spam_reasons.is_(None))
     if hidden is not None:

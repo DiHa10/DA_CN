@@ -6,6 +6,7 @@ Hai nhánh, cùng chữ ký analyze_batch:
 """
 
 import os
+from collections import Counter
 import re
 from pathlib import Path
 
@@ -71,6 +72,39 @@ def _clause_score(clause: str) -> int:
         for m in regex.finditer(clause):
             score += -sign if _negated(clause, m.start()) else sign
     return score
+
+
+# từ không mang nghĩa ở đầu/cuối cụm: cụm "rất chậm" -> đã có "chậm"; "quán thì" -> bỏ
+STOPWORDS = set("""và thì là mà của cho có được rất quá hơi lắm nhưng với này kia đó một những các mình bạn em anh chị
+ạ nha nhé á ơi cũng đã đang sẽ vẫn còn nên vì để khi lúc như ở trong ra vào lên xuống nữa luôn thật_sự hết chỉ quán
+mọi_người lần đi đến nói thấy làm bị trải_nghiệm đầu_tiên hôm_nay cảm_thấy""".split())
+
+
+def complaint_phrases(texts: list[str], top: int = 8) -> list[dict]:
+    """Cụm từ khách hay nhắc trong các vế câu chê, như "thái độ", "mùi thuốc lá", "chỗ để xe".
+    Tách từ tiếng Việt trước ("thuốc_lá" là một từ) rồi đếm cụm 1–3 từ theo số review (mỗi review tính một lần).
+    Cụm 1 từ chỉ lấy từ ghép (từ đơn như "quán", "món" quá chung). Bỏ cụm con nằm trong cụm dài hơn cùng số lần."""
+    from underthesea import word_tokenize  # nặng, chỉ nạp khi cần
+
+    counts: Counter = Counter()
+    for text in texts:
+        grams = set()
+        for clause in _CLAUSE_SPLIT.split(normalize(text)):
+            # vế câu từ điển thấy khen thì bỏ: "phở ngon" trong review chê phục vụ không phải lời chê
+            if not clause.strip() or _clause_score(clause) > 0:
+                continue
+            words = [w.lower() for w in word_tokenize(clause) if re.match(r"\w", w)]
+            words = [w.replace(" ", "_") for w in words]
+            for n in (1, 2, 3):
+                for i in range(len(words) - n + 1):
+                    g = words[i:i + n]
+                    if g[0] in STOPWORDS or g[-1] in STOPWORDS or (n == 1 and "_" not in g[0]):
+                        continue
+                    grams.add(" ".join(g).replace("_", " "))
+        counts.update(grams)
+    ranked = [(p, n) for p, n in counts.most_common() if n >= 2]
+    kept = [(p, n) for p, n in ranked if not any(p != q and f" {p} " in f" {q} " and n == m for q, m in ranked)]
+    return [{"phrase": p, "count": n} for p, n in kept[:top]]
 
 
 def _label(score: int) -> str:

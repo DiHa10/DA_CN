@@ -9,6 +9,7 @@ from ..db import get_db
 from ..models import Review, Store, counted
 from ..security import staff_store
 from ..services import anomaly
+from ..services.nlp import complaint_phrases
 from ..timeutil import as_utc, vn_date, vn_day_start
 
 router = APIRouter(prefix="/stores/{store_id}/dashboard", tags=["dashboard"])
@@ -47,6 +48,9 @@ def summary(days: int | None = Query(None, ge=1, le=3650), store: Store = Depend
     def row(counter):
         return {s: counter[s] for s in SENTIMENTS}
 
+    # shortcut: tách từ ~3ms/review nên chỉ xét 200 review chê gần nhất; cần cả lịch sử thì tính sẵn khi phân tích
+    complaints = [r.content for r in sorted(analyzed, key=lambda r: r.created_at, reverse=True)
+                  if r.analysis.sentiment == "negative" or any(a.sentiment == "negative" for a in r.aspects)][:200]
     ratings = [r.rating for r in reviews if r.rating]
     aspect_rows = [{"aspect": a, **row(c), "total": sum(c.values()), "latest_negative": latest_negative.get(a)}
                    for a, c in aspects.items()]
@@ -61,6 +65,7 @@ def summary(days: int | None = Query(None, ge=1, le=3650), store: Store = Depend
                    "avg_rating": round(sum(week_ratings[w]) / len(week_ratings[w]), 2) if week_ratings[w] else None}
                   for w, c in sorted(trend.items())],
         "aspects": sorted(aspect_rows, key=lambda x: x["total"], reverse=True),
+        "complaints": complaint_phrases(complaints),
     }
 
 

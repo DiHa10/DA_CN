@@ -202,3 +202,22 @@ def test_fix_aspect_label(client):
     staff = auth_headers(client, "staff@test.vn")
     client.post(f"/stores/{store['id']}/members", json={"email": "staff@test.vn", "role": "staff"}, headers=h)
     assert client.put(f"{base}/{rid}/aspects/food", json={"sentiment": "positive"}, headers=staff).status_code == 403
+
+
+def test_search_and_complaint_phrases(client):
+    h = auth_headers(client)
+    store = make_store(client, h)
+    csv = ("content\n"
+           '"Phục vụ chậm quá, đợi lâu"\n'
+           "Phở ngon nhưng phục vụ chậm\n"
+           '"Nhân viên thô lỗ, phục vụ chậm"\n'
+           '"Giảm 50% cho khách quen, phở ngon"\n').encode()
+    client.post(f"/stores/{store['id']}/reviews/import", files={"file": ("r.csv", csv)}, headers=h)
+    base = f"/stores/{store['id']}/reviews"
+    assert len(client.get(base, params={"q": "PHỤC VỤ"}, headers=h).json()) in (3, 0)  # SQLite chỉ không phân biệt hoa thường với ASCII
+    assert len(client.get(base, params={"q": "phục vụ chậm"}, headers=h).json()) == 3
+    assert len(client.get(base, params={"q": "50%"}, headers=h).json()) == 1
+    assert client.get(base, params={"q": "%"}, headers=h).json()[0]["content"].startswith("Giảm 50%")  # % là chữ, không phải ký tự đại diện
+
+    dash = client.get(f"/stores/{store['id']}/dashboard", headers=h).json()
+    assert dash["complaints"][0] == {"phrase": "phục vụ chậm", "count": 3}

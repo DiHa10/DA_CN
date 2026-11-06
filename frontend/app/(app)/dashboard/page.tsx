@@ -117,6 +117,7 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-6">
             {store && <InsightsPanel storeId={store.id} canRegenerate={can(store, "manager")} />}
+            <Complaints items={data.complaints} since={data.since} />
             <RecentNegative reviews={recent} />
           </div>
         </div>
@@ -310,6 +311,29 @@ function Trend({ data }: { data: Summary }) {
           </LineChart>
         </ResponsiveContainer>
       </div>
+    </section>
+  );
+}
+
+// Cụm từ khách hay nhắc trong lời chê: cụ thể hơn tên khía cạnh ("mùi thuốc lá" thay vì "Không gian")
+function Complaints({ items, since }: { items: Summary["complaints"]; since: string | null }) {
+  if (!items.length) return null;
+  const max = items[0].count;
+  return (
+    <section>
+      <h2 className="heading mb-2">Khách hay nhắc khi chê</h2>
+      <ul className="panel space-y-2 px-4 py-3">
+        {items.map((c) => (
+          <li key={c.phrase} className="grid grid-cols-[minmax(0,1fr)_72px_24px] items-center gap-3 text-sm">
+            <Link href={`/reviews?q=${encodeURIComponent(c.phrase)}${since ? `&date_from=${since}` : ""}`}
+              className="tap truncate font-medium hover:underline">
+              {c.phrase}
+            </Link>
+            <span aria-hidden className="h-1.5 rounded-sm bg-negative/70" style={{ width: `${(c.count / max) * 100}%` }} />
+            <span className="num text-right text-muted">{c.count}<span className="sr-only"> đánh giá</span></span>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

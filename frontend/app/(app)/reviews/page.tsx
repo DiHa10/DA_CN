@@ -15,7 +15,7 @@ import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 const PAGE = 50;
 const TABS = [["", "Tất cả"], ["negative", SENTIMENT_LABEL.negative], ["neutral", SENTIMENT_LABEL.neutral], ["positive", SENTIMENT_LABEL.positive]];
-const FILTERS = ["aspect", "source", "replied", "spam", "hidden", "date_from", "date_to"] as const;
+const FILTERS = ["q", "aspect", "source", "replied", "spam", "hidden", "date_from", "date_to"] as const;
 
 export default function ReviewsPage() {
   return (
@@ -109,6 +109,15 @@ function Reviews() {
       <Tabs value={sentiment} onChange={(v) => setFilter("sentiment", v)} />
 
       <div className="mt-5 flex flex-wrap items-center gap-2">
+        {/* tìm khi bấm Enter (không tìm theo từng phím: mỗi lần là một truy vấn); key để ô trống lại khi xóa bộ lọc */}
+        <form role="search" key={params.get("q") ?? ""} onSubmit={(e) => {
+          e.preventDefault();
+          setFilter("q", String(new FormData(e.currentTarget).get("q") ?? "").trim());
+        }}>
+          <label htmlFor="q" className="sr-only">Tìm trong nội dung đánh giá</label>
+          <input id="q" name="q" type="search" maxLength={100} defaultValue={params.get("q") ?? ""}
+            placeholder="Tìm chữ, bấm Enter" className="control w-48" />
+        </form>
         {select("aspect", "Khía cạnh", ASPECT_LABEL)}
         {select("source", "Nguồn", SOURCE_LABEL)}
         {select("replied", "Phản hồi", { false: "Chưa trả lời", true: "Đã trả lời" })}
