@@ -119,7 +119,7 @@ Tắt server:
 ```bash
 D:/DA_CN/.pg/pgsql/bin/pg_ctl.exe -D D:/DA_CN/.pg/data stop
 ```
-Có Docker thì dùng `docker compose up -d` thay cho bản portable.
+Có Docker thì chỉ bật DB bằng `docker compose up -d db` thay cho bản portable.
 
 ### Migration (Alembic)
 Backend tự chạy `alembic upgrade head` khi khởi động (`app/migrate.py`). Đổi models thì tạo migration mới (trong thư mục `backend`, khi DB đang ở bản mới nhất):

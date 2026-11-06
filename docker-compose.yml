@@ -4,11 +4,15 @@
 
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:16  # giữ đúng image cũ: volume pgdata đã tạo bằng nó dùng tiếp được
     environment:
       POSTGRES_USER: feedback
       POSTGRES_PASSWORD: feedback
       POSTGRES_DB: feedback
+    # mở cổng để chạy backend trực tiếp trên máy mà dùng DB này (docker compose up -d db).
+    # Đang bật PostgreSQL portable (start.bat) thì cổng 5432 đã bận: tắt một trong hai
+    ports:
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data  # dữ liệu giữ lại qua các lần build / tắt bật
     healthcheck:
