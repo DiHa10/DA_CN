@@ -4,7 +4,6 @@ Cấu hình Gmail: SMTP_HOST=smtp.gmail.com, SMTP_PORT=587, SMTP_USER=<gmail>, S
 Không đặt SMTP_HOST thì email được ghi ra backend/outbox/*.eml để xem thử.
 """
 
-import html
 import logging
 import os
 import smtplib
@@ -23,6 +22,7 @@ from ..labels import ASPECT_VI
 from ..models import Review, Store, counted
 from ..timeutil import VN, as_utc, vn_day_start
 from . import anomaly
+from . import email_template as T
 
 log = logging.getLogger(__name__)
 OUTBOX = Path(__file__).resolve().parents[2] / "outbox"
@@ -90,25 +90,41 @@ def build(db: Session, store: Store, now: datetime) -> EmailMessage:
         f"Đánh giá mới: {n} (tuần trước đó: {pn})",
         f"Tỉ lệ tiêu cực: {_pct(neg, n)} (tuần trước đó: {_pct(pneg, pn)})",
     ]
+    warnings = []  # (chữ) các điều cần chú ý: khối đỏ trong HTML
     if rising:
-        facts.append(f"Cần chú ý: {ASPECT_VI.get(rising, rising)} – {aspects[rising]} lượt chê (tuần trước đó: {paspects[rising]})")
+        warnings.append(f"Cần chú ý: {ASPECT_VI.get(rising, rising)} – {aspects[rising]} lượt chê (tuần trước đó: {paspects[rising]})")
     for a in anomaly.detect(db, store.id, end)["alerts"]:
         label = ASPECT_VI.get(a["aspect"], a["aspect"]) if a["aspect"] else "Tổng thể"
-        facts.append(f"Bất thường – {label}: tỉ lệ chê {_percent(a['rate'])} trong {a['mentions']} lượt nhắc "
-                     f"(8 tuần trước đó: {_percent(a['baseline_rate'])})")
+        warnings.append(f"Bất thường – {label}: tỉ lệ chê {_percent(a['rate'])} trong {a['mentions']} lượt nhắc "
+                        f"(8 tuần trước đó: {_percent(a['baseline_rate'])})")
+    facts += warnings
     if headline:
         facts.append(f"Gợi ý từ AI (bản tóm tắt gần nhất): {headline}")
 
     quote_lines = ["", "Một số góp ý tiêu cực:", *[f"- {q}" for q in quotes]] if quotes else []
     text = "\n".join([title, *facts, *quote_lines])
-    e = html.escape  # nội dung review do khách viết: phải escape trước khi đưa vào HTML
-    page = (f"<div style='font-family:Arial,sans-serif;font-size:14px;color:#131416;max-width:560px'>"
-            f"<h2 style='font-size:18px'>{e(title)}</h2>"
-            + "".join(f"<p style='margin:0 0 8px'>{e(f)}</p>" for f in facts)
-            + ("<p style='margin:16px 0 8px'><b>Một số góp ý tiêu cực</b></p><ul>"
-               + "".join(f"<li style='margin-bottom:4px'>{e(q)}</li>" for q in quotes) + "</ul>" if quotes else "")
-            + "<p style='color:#5d5f60;font-size:12px;margin-top:24px'>Email tự động từ Quán Nghe. "
-              "Tắt báo cáo trong trang Cửa hàng.</p></div>")
+
+    # nội dung review và tên quán do người dùng gõ: T.e() escape trước khi đưa vào HTML
+    def kpi(label: str, value: str, before: str) -> str:
+        return (f'<td width="50%" style="background:#ffffff;border:1px solid {T.RULE};border-radius:6px;padding:14px 16px">'
+                f'<div style="font:13px {T.FONT};color:{T.MUTED}">{label}</div>'
+                f'<div style="font:28px/1.2 {T.FONT};color:{T.INK}">{value}</div>'
+                f'<div style="font:12px {T.FONT};color:{T.MUTED}">tuần trước đó: {before}</div></td>')
+
+    body = (
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px"><tr>'
+        + kpi("Đánh giá mới", str(n), str(pn)) + '<td width="12"></td>'
+        + kpi("Tỉ lệ tiêu cực", _pct(neg, n), _pct(pneg, pn)) + "</tr></table>"
+        + "".join(T.note(T.e(w), T.NEGATIVE) for w in warnings)
+        + (T.note(f"<b>Gợi ý từ AI</b><br>{T.e(headline)}") if headline else "")
+        + (f'<p style="margin:20px 0 8px;font:bold 13px {T.FONT};letter-spacing:1px;text-transform:uppercase;color:{T.BLUE}">'
+           "Khách nói gì trong tuần</p>"
+           + "".join(f'<p style="margin:0 0 8px;padding:10px 14px;background:#ffffff;border-radius:6px;font:italic 14px/1.5 {T.FONT}">'
+                     f"“{T.e(q)}”</p>" for q in quotes) if quotes else "")
+        + T.button(f"{T.APP_URL}/dashboard", "Mở Tổng quan")
+    )
+    page = T.layout(title, body, preheader=facts[1],
+                    footer="Email tự động từ Quán Nghe. Tắt báo cáo tuần trong trang Cửa hàng.")
 
     msg = EmailMessage()
     msg["Subject"] = f"[Quán Nghe] Báo cáo tuần {period}: {name}"

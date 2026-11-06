@@ -28,8 +28,11 @@ def test_forgot_and_reset(client, monkeypatch, tmp_path):
     assert client.post("/auth/forgot", json={"email": "Owner@Test.vn"}).json() == {"ok": True}
     mails = list(tmp_path.glob("*.eml"))
     assert len(mails) == 1
-    body = message_from_bytes(mails[0].read_bytes(), policy=policy.default).get_body().get_content()
+    mail = message_from_bytes(mails[0].read_bytes(), policy=policy.default)
+    body = mail.get_body(("plain",)).get_content()
     token = re.search(r"token=([\w.-]+)", body).group(1)
+    page = mail.get_body(("html",)).get_content()
+    assert "Đặt mật khẩu mới" in page and f"token={token}" in page  # nút và link dự phòng cùng một link
 
     # token đặt lại không dùng thay token đăng nhập được
     assert client.get("/stores", headers={"Authorization": f"Bearer {token}"}).status_code == 401

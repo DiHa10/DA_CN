@@ -13,6 +13,7 @@ from ..ratelimit import SlidingWindow
 from ..schemas import ForgotIn, PasswordChange, ResetIn, Token, UserCreate
 from ..security import (create_reset_token, create_token, get_current_user, hash_password, user_from_reset_token,
                         verify_password)
+from ..services.email_template import APP_URL, BLUE, MUTED, RULE, button, e, layout
 from ..services.weekly_report import DeliveryError, deliver
 
 log = logging.getLogger(__name__)
@@ -60,7 +61,32 @@ def change_password(body: PasswordChange, user: User = Depends(get_current_user)
 
 # chống dùng chức năng này để gửi thư rác tới một hộp thư
 forgot_limit = SlidingWindow(3, 3600, "Đã gửi nhiều link đặt lại cho email này, thử lại sau 1 giờ")
-APP_URL = os.getenv("APP_URL", "http://localhost:3000")
+
+
+def reset_email(user: User) -> EmailMessage:
+    link = f"{APP_URL}/reset?token={create_reset_token(user)}"
+    msg = EmailMessage()
+    msg["Subject"] = "[Quán Nghe] Đặt lại mật khẩu"
+    msg["From"] = os.getenv("SMTP_FROM") or os.getenv("SMTP_USER") or "quan-nghe@localhost"
+    msg["To"] = user.email
+    msg.set_content("\n".join([  # bản chữ thường cho trình đọc mail không hiện HTML
+        "Bấm link sau để đặt mật khẩu mới (hết hạn sau 30 phút):",
+        link,
+        "",
+        "Nếu bạn không yêu cầu, bỏ qua email này: mật khẩu cũ vẫn dùng được.",
+    ]))
+    body = (
+        f'<p style="margin:0 0 8px">Có người vừa yêu cầu đặt lại mật khẩu cho tài khoản <b>{e(user.email)}</b>.</p>'
+        f'<p style="margin:0">Bấm nút dưới đây để chọn mật khẩu mới.</p>'
+        + button(link, "Đặt mật khẩu mới")
+        + f'<p style="margin:0 0 16px;font-size:13px;color:{MUTED}">Link hết hạn sau <b>30 phút</b> và chỉ dùng được một lần.</p>'
+        + f'<p style="margin:0 0 4px;font-size:13px;color:{MUTED}">Nút không bấm được? Chép link này vào trình duyệt:</p>'
+        + f'<p style="margin:0 0 20px;font-size:12px;word-break:break-all"><a href="{e(link)}" style="color:{BLUE}">{e(link)}</a></p>'
+        + f'<p style="margin:0;padding-top:16px;border-top:1px solid {RULE};font-size:13px;color:{MUTED}">'
+          "Không phải bạn yêu cầu? Bỏ qua email này, mật khẩu cũ vẫn dùng được và không ai đổi được nếu không có link trên.</p>"
+    )
+    msg.add_alternative(layout("Đặt lại mật khẩu", body, preheader="Link đặt mật khẩu mới, hết hạn sau 30 phút"), subtype="html")
+    return msg
 
 
 @router.post("/forgot")
@@ -70,18 +96,8 @@ def forgot_password(body: ForgotIn, db: Session = Depends(get_db)):
     forgot_limit.hit(email)
     user = db.scalar(select(User).where(User.email == email))
     if user:
-        msg = EmailMessage()
-        msg["Subject"] = "[Quán Nghe] Đặt lại mật khẩu"
-        msg["From"] = os.getenv("SMTP_FROM") or os.getenv("SMTP_USER") or "quan-nghe@localhost"
-        msg["To"] = user.email
-        msg.set_content("\n".join([
-            "Bấm link sau để đặt mật khẩu mới (hết hạn sau 30 phút):",
-            f"{APP_URL}/reset?token={create_reset_token(user)}",
-            "",
-            "Nếu bạn không yêu cầu, bỏ qua email này: mật khẩu cũ vẫn dùng được.",
-        ]))
         try:
-            deliver(msg, "reset")
+            deliver(reset_email(user), "reset")
         except DeliveryError:
             log.exception("password reset email failed")
     return {"ok": True}
