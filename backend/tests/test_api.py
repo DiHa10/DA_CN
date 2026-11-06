@@ -168,3 +168,36 @@ def test_dashboard_days_filter(client):
     assert recent["total"] == 1 and recent["sentiment"]["negative"] == 1
     assert recent["since"] == str((datetime.now(timezone(timedelta(hours=7))) - timedelta(days=29)).date())
     assert client.get(url, params={"days": 0}, headers=h).status_code == 422
+
+
+def test_fix_aspect_label(client):
+    from app.services.analysis import analyze_reviews
+
+    h = auth_headers(client)
+    store = make_store(client, h)
+    client.post("/public/stores/pho-ngon/reviews", json={"content": "Phở ngon nhưng phục vụ chậm", "rating": 3})
+    base = f"/stores/{store['id']}/reviews"
+    rid = client.get(base, headers=h).json()[0]["id"]
+    aspects = lambda r: {a["aspect"]: (a["sentiment"], a["corrected"]) for a in r["aspects"]}
+
+    # model: món ăn khen, phục vụ chê; người sửa: phục vụ thật ra khen, thêm "vị trí" chê
+    r = client.put(f"{base}/{rid}/aspects/service", json={"sentiment": "positive"}, headers=h).json()
+    r = client.put(f"{base}/{rid}/aspects/location", json={"sentiment": "negative"}, headers=h).json()
+    assert aspects(r) == {"food": ("positive", False), "service": ("positive", True), "location": ("negative", True)}
+    assert r["analysis"]["sentiment"] == "positive"  # 2 khen, 1 chê
+    dash = client.get(f"/stores/{store['id']}/dashboard", headers=h).json()
+    assert next(a for a in dash["aspects"] if a["aspect"] == "service")["positive"] == 1
+
+    analyze_reviews([rid])  # phân tích lại không xóa nhãn người sửa
+    assert aspects(client.get(base, headers=h).json()[0])["service"] == ("positive", True)
+
+    # sửa về đúng nhãn model = bỏ lần sửa; "none" = bỏ khía cạnh
+    r = client.put(f"{base}/{rid}/aspects/service", json={"sentiment": "negative"}, headers=h).json()
+    r = client.put(f"{base}/{rid}/aspects/food", json={"sentiment": "none"}, headers=h).json()
+    assert aspects(r) == {"service": ("negative", False), "location": ("negative", True)}
+
+    assert client.put(f"{base}/{rid}/aspects/wifi", json={"sentiment": "none"}, headers=h).status_code == 404
+    assert client.put(f"{base}/{rid}/aspects/food", json={"sentiment": "ok"}, headers=h).status_code == 422
+    staff = auth_headers(client, "staff@test.vn")
+    client.post(f"/stores/{store['id']}/members", json={"email": "staff@test.vn", "role": "staff"}, headers=h)
+    assert client.put(f"{base}/{rid}/aspects/food", json={"sentiment": "positive"}, headers=staff).status_code == 403

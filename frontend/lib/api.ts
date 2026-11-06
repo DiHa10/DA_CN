@@ -41,7 +41,7 @@ export type Review = {
   spam_reasons: string[] | null;
   hidden: boolean;
   analysis: { sentiment: Sentiment; confidence: number } | null;
-  aspects: { aspect: string; sentiment: Sentiment }[];
+  aspects: { aspect: string; sentiment: Sentiment; corrected: boolean }[];
 };
 
 type Counts = Record<Sentiment, number>;

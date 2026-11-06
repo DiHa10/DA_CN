@@ -93,6 +93,11 @@ class AspectOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     aspect: str
     sentiment: str
+    corrected: bool = False
+
+
+class AspectFix(BaseModel):
+    sentiment: str = Field(pattern=r"^(positive|neutral|negative|none)$")  # none = câu không nhắc khía cạnh này
 
 
 class AnalysisOut(BaseModel):

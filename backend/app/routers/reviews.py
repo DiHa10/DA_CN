@@ -8,12 +8,12 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..labels import ASPECT_VI, SENTIMENT_VI, SOURCE_VI, SPAM_VI
-from ..models import Review, ReviewAnalysis, ReviewAspect, Store, utcnow
+from ..models import AspectCorrection, Review, ReviewAnalysis, ReviewAspect, Store, User, utcnow
 from ..ratelimit import SlidingWindow
-from ..schemas import HiddenIn, ReplyDraft, ReplyIn, ReviewIn, ReviewOut
-from ..security import manager_store, staff_store
-from ..services import reply
-from ..services.analysis import analyze_reviews
+from ..schemas import AspectFix, HiddenIn, ReplyDraft, ReplyIn, ReviewIn, ReviewOut
+from ..security import get_current_user, manager_store, staff_store
+from ..services import reply, spam
+from ..services.analysis import analyze_reviews, apply_corrections
 from ..services.llm import LLMError
 from ..timeutil import vn_date, vn_day_start
 
@@ -180,6 +180,36 @@ def save_reply(review_id: int, body: ReplyIn, store: Store = Depends(staff_store
     text = body.reply_text.strip()
     review.reply_text, review.replied_at = (text, utcnow()) if text else (None, None)
     db.commit()
+    return review
+
+
+@router.put("/{review_id}/aspects/{aspect}", response_model=ReviewOut)
+def fix_aspect(review_id: int, aspect: str, body: AspectFix, store: Store = Depends(manager_store),
+               user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Sửa nhãn model đoán sai cho một khía cạnh; sửa về đúng nhãn của model thì coi như bỏ lần sửa."""
+    if aspect not in ASPECT_VI:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không có khía cạnh này")
+    review = _owned_review(review_id, store, db)
+    if not review.analysis:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Đánh giá đang được phân tích, thử lại sau ít giây")
+    fix = next((c for c in review.corrections if c.aspect == aspect), None)
+    model_label = fix.model_label if fix else next((a.sentiment for a in review.aspects if a.aspect == aspect), "none")
+    if body.sentiment == model_label:
+        if fix:
+            review.corrections.remove(fix)
+    elif fix:
+        fix.human_label, fix.user_id, fix.created_at = body.sentiment, user.id, utcnow()
+    else:
+        review.corrections.append(AspectCorrection(aspect=aspect, model_label=model_label, human_label=body.sentiment, user_id=user.id))
+    if fix and body.sentiment == model_label:
+        # bỏ lần sửa: lấy lại nhãn model cho khía cạnh này trước khi áp các lần sửa còn lại
+        review.aspects = [a for a in review.aspects if a.aspect != aspect]
+        if model_label != "none":
+            review.aspects.append(ReviewAspect(aspect=aspect, sentiment=model_label))
+    apply_corrections(review)
+    spam.flag_reviews(db, [review])  # cảm xúc đổi thì luật "số sao ngược nội dung" phải xét lại
+    db.commit()
+    db.refresh(review)
     return review
 
 

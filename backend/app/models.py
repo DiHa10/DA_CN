@@ -63,6 +63,7 @@ class Review(Base):
 
     analysis: Mapped["ReviewAnalysis | None"] = relationship(cascade="all, delete-orphan", lazy="selectin")
     aspects: Mapped[list["ReviewAspect"]] = relationship(cascade="all, delete-orphan", lazy="selectin")
+    corrections: Mapped[list["AspectCorrection"]] = relationship(cascade="all, delete-orphan", lazy="selectin")
 
 
 class ReviewAnalysis(Base):
@@ -79,6 +80,20 @@ class ReviewAspect(Base):
     review_id: Mapped[int] = mapped_column(ForeignKey("reviews.id", ondelete="CASCADE"), index=True)
     aspect: Mapped[str] = mapped_column(String(20))  # food | drink | service | price | ambience | location
     sentiment: Mapped[str] = mapped_column(String(10))
+    corrected: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())  # nhãn do người sửa
+
+
+class AspectCorrection(Base):
+    """Người sửa nhãn model đoán sai. Phân tích lại vẫn giữ nhãn này; xuất ra để đo lại và huấn luyện thêm model."""
+    __tablename__ = "aspect_corrections"
+    __table_args__ = (UniqueConstraint("review_id", "aspect"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    review_id: Mapped[int] = mapped_column(ForeignKey("reviews.id", ondelete="CASCADE"))
+    aspect: Mapped[str] = mapped_column(String(20))
+    model_label: Mapped[str] = mapped_column(String(10))  # positive | neutral | negative | none (model không thấy)
+    human_label: Mapped[str] = mapped_column(String(10))  # như trên; none = khía cạnh này không được nhắc
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class StoreInsight(Base):

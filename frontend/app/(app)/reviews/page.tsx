@@ -4,6 +4,7 @@ import { useNegativeAlert } from "@/components/negative-alert";
 import { Icon3D } from "@/components/icon3d";
 import { ReplyBox } from "@/components/reply-box";
 import { AspectChip, SentimentBadge } from "@/components/sentiment-badge";
+import { AspectEditor } from "@/components/aspect-editor";
 import { Skeleton } from "@/components/skeleton";
 import { useStores } from "@/components/store-context";
 import { api, can, json, type Review } from "@/lib/api";
@@ -171,9 +172,10 @@ function Reviews() {
                       )}
                     </div>
                   )}
-                  {r.aspects.length > 0 && (
-                    <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
-                      {r.aspects.map((a) => <AspectChip key={a.aspect} label={ASPECT_LABEL[a.aspect] ?? a.aspect} sentiment={a.sentiment} />)}
+                  {(r.aspects.length > 0 || (r.analysis && can(store, "manager"))) && (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                      {r.aspects.map((a) => <AspectChip key={a.aspect} label={ASPECT_LABEL[a.aspect] ?? a.aspect} sentiment={a.sentiment} corrected={a.corrected} />)}
+                      {r.analysis && can(store, "manager") && <AspectEditor storeId={store!.id} review={r} onSaved={replace} />}
                     </div>
                   )}
                   <ReplyBox storeId={store!.id} review={r} onSaved={replace} />
