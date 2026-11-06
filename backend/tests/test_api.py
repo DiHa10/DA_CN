@@ -33,6 +33,7 @@ def test_qr_review_is_analyzed_and_on_dashboard(client):
     service = next(a for a in dash["aspects"] if a["aspect"] == "service")
     assert service["latest_negative"]["content"] == "Phở ngon nhưng phục vụ chậm"
     assert dash["trend"][0]["neutral"] == 1  # "ngon" và "chậm" bù nhau
+    assert (dash["trend"][0]["avg_rating"], dash["trend"][0]["rated"]) == (3, 1)
 
     # cả review trung lập, nhưng phục vụ bị chê: lọc "phục vụ + tiêu cực" phải ra review này
     base = f"/stores/{store['id']}/reviews"

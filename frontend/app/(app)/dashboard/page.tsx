@@ -246,39 +246,67 @@ function AspectBoard({ aspects, since }: { aspects: AspectRow[]; since: string |
   );
 }
 
+// Xu hướng theo tuần: tỉ lệ chê (máy đọc lời khách) hoặc điểm sao (khách tự chấm), chọn bằng tab
 function Trend({ data }: { data: Summary }) {
+  const [metric, setMetric] = useState<"neg" | "star">("neg");
+  const stars = metric === "star";
   const points = data.trend.map((w) => {
     const n = w.positive + w.neutral + w.negative;
-    return { week: w.week_start, label: formatDate(w.week_start).slice(0, 5), rate: n ? (w.negative / n) * 100 : 0, neg: w.negative, n };
+    return {
+      week: w.week_start, label: formatDate(w.week_start).slice(0, 5), neg: w.negative, n, rated: w.rated,
+      rate: n ? (w.negative / n) * 100 : 0, star: w.avg_rating,
+    };
   });
-  const avg = (data.sentiment.negative / data.analyzed) * 100;
+  const negAvg = (data.sentiment.negative / data.analyzed) * 100;
+  const avg = stars ? data.avg_rating : negAvg;
   // mốc tròn, mốc trên cùng cao hơn giá trị lớn nhất để đường không chạm mép
-  const step = Math.max(avg, ...points.map((p) => p.rate)) > 40 ? 20 : 10;
-  const top = (Math.floor(Math.max(avg, ...points.map((p) => p.rate)) / step) + 1) * step;
-  const ticks = Array.from({ length: top / step + 1 }, (_, i) => i * step);
+  const step = Math.max(negAvg, ...points.map((p) => p.rate)) > 40 ? 20 : 10;
+  const top = (Math.floor(Math.max(negAvg, ...points.map((p) => p.rate)) / step) + 1) * step;
+  const ticks = stars ? [1, 2, 3, 4, 5] : Array.from({ length: top / step + 1 }, (_, i) => i * step);
   const axis = { stroke: "transparent", tick: { fill: "#586179", fontSize: 12 } };
+  const rated = points.filter((p) => p.star !== null);
+  const fmt = (v: number) => (stars ? `${formatNum(v, 2)}★` : `${formatNum(v)}%`);
+  const series = stars ? rated.map((p) => p.star!) : points.map((p) => p.rate);
 
   return (
     <section className="panel px-5 pt-4 pb-3">
-      <h2 className="heading">Tỉ lệ đánh giá tiêu cực theo tuần</h2>
-      <p className="text-xs text-muted">Đường nét đứt: trung bình toàn bộ {formatNum(avg)}%</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="heading">{stars ? "Điểm sao trung bình theo tuần" : "Tỉ lệ đánh giá tiêu cực theo tuần"}</h2>
+          <p className="text-xs text-muted">
+            {avg === null ? "Chưa có lượt chấm sao nào" : `Đường nét đứt: trung bình cả khoảng ${fmt(avg)}`}
+          </p>
+        </div>
+        <div role="group" aria-label="Chỉ số" className="flex rounded-sm border border-control p-0.5 text-xs">
+          {([["neg", "Tỉ lệ tiêu cực"], ["star", "Điểm sao"]] as const).map(([k, label]) => (
+            <button key={k} type="button" aria-pressed={metric === k} onClick={() => setMetric(k)}
+              className={`h-11 cursor-pointer rounded-sm px-2.5 font-medium md:h-7 ${metric === k ? "bg-navy text-cream" : "text-muted hover:text-ink"}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
       {/* biểu đồ SVG không đọc được bằng trình đọc màn hình: đưa số liệu chính thành một câu */}
-      <div className="mt-3 h-[200px]" role="img" aria-label={points.length
-        ? `Tỉ lệ tiêu cực theo tuần, từ ${formatNum(points[0].rate)}% tuần ${points[0].label} đến ${formatNum(points.at(-1)!.rate)}% tuần ${points.at(-1)!.label}; cao nhất ${formatNum(Math.max(...points.map((p) => p.rate)))}%`
+      <div className="mt-3 h-[200px]" role="img" aria-label={series.length
+        ? `${stars ? "Điểm sao" : "Tỉ lệ tiêu cực"} theo tuần, từ ${fmt(series[0])} đến ${fmt(series.at(-1)!)}; cao nhất ${fmt(Math.max(...series))}, thấp nhất ${fmt(Math.min(...series))}`
         : "Chưa có dữ liệu theo tuần"}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={points} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
             <CartesianGrid stroke="#e4e8ef" vertical={false} />
             <XAxis dataKey="label" {...axis} tickLine={false} minTickGap={24} />
-            <YAxis domain={[0, top]} ticks={ticks} unit="%" {...axis} tickLine={false} />
-            <ReferenceLine y={avg} stroke="#586179" strokeDasharray="4 4" />
+            <YAxis domain={stars ? [1, 5] : [0, top]} ticks={ticks} unit={stars ? "" : "%"} {...axis} tickLine={false} />
+            {avg !== null && <ReferenceLine y={avg} stroke="#586179" strokeDasharray="4 4" />}
             <Tooltip
               cursor={{ stroke: "#858c99" }}
               contentStyle={{ border: "1px solid #d9dee8", borderRadius: 6, background: "#fcf9f0", fontSize: 13, padding: "6px 10px" }}
               labelFormatter={(_, p) => (p[0] ? `Tuần từ ${formatDate(p[0].payload.week)}` : "")}
-              formatter={(_, __, p) => [`${formatNum(p.payload.rate)}% (${p.payload.neg}/${p.payload.n} đánh giá)`, "Tiêu cực"]}
+              formatter={(_, __, p) => stars
+                ? [`${formatNum(p.payload.star, 2)}★ (${p.payload.rated} lượt chấm)`, "Điểm sao"]
+                : [`${formatNum(p.payload.rate)}% (${p.payload.neg}/${p.payload.n} đánh giá)`, "Tiêu cực"]}
             />
-            <Line type="linear" dataKey="rate" stroke={ACCENT} strokeWidth={2} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
+            {/* tuần không ai chấm sao thì nối qua, không kéo đường về 0 */}
+            <Line type="linear" dataKey={stars ? "star" : "rate"} stroke={stars ? "#b8862f" : ACCENT} strokeWidth={2}
+              dot={stars ? { r: 2 } : false} activeDot={{ r: 4 }} connectNulls isAnimationActive={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>

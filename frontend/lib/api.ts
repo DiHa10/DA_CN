@@ -58,7 +58,7 @@ export type Summary = {
   sentiment: Counts;
   rated: number;
   avg_rating: number | null;
-  trend: ({ week_start: string } & Counts)[];
+  trend: ({ week_start: string; rated: number; avg_rating: number | null } & Counts)[];
   aspects: AspectRow[];
 };
 

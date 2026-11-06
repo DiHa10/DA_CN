@@ -30,12 +30,15 @@ def summary(days: int | None = Query(None, ge=1, le=3650), store: Store = Depend
 
     totals = Counter(r.analysis.sentiment for r in analyzed)
     trend = defaultdict(Counter)
+    week_ratings = defaultdict(list)  # điểm sao theo tuần: chủ quán quen nhìn sao Google hơn tỉ lệ chê
     aspects = defaultdict(Counter)
     latest_negative = {}  # aspect -> nội dung review tiêu cực mới nhất, để chủ quán đọc lời khách
     for r in sorted(analyzed, key=lambda r: r.created_at, reverse=True):
         day = vn_date(r.created_at)  # tuần bắt đầu thứ Hai theo giờ VN
         monday = (day - timedelta(days=day.weekday())).isoformat()
         trend[monday][r.analysis.sentiment] += 1
+        if r.rating:
+            week_ratings[monday].append(r.rating)
         for a in r.aspects:
             aspects[a.aspect][a.sentiment] += 1
             if a.sentiment == "negative":
@@ -54,7 +57,9 @@ def summary(days: int | None = Query(None, ge=1, le=3650), store: Store = Depend
         "sentiment": row(totals),
         "rated": len(ratings),
         "avg_rating": round(sum(ratings) / len(ratings), 2) if ratings else None,
-        "trend": [{"week_start": w, **row(c)} for w, c in sorted(trend.items())],
+        "trend": [{"week_start": w, **row(c), "rated": len(week_ratings[w]),
+                   "avg_rating": round(sum(week_ratings[w]) / len(week_ratings[w]), 2) if week_ratings[w] else None}
+                  for w, c in sorted(trend.items())],
         "aspects": sorted(aspect_rows, key=lambda x: x["total"], reverse=True),
     }
 
