@@ -231,3 +231,17 @@ def test_smtp_delivery(monkeypatch):
     FakeSMTP.fail_login = True
     with pytest.raises(weekly_report.DeliveryError, match="App Password"):
         weekly_report.deliver(msg, "pho")
+
+
+def test_insights_follow_dashboard_range(client, fake_llm):
+    from datetime import datetime, timedelta, timezone
+    h = auth_headers(client)
+    store = make_store(client, h)
+    base = f"/stores/{store['id']}"
+    old = (datetime.now(timezone.utc) - timedelta(days=60)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    csv = f"content,created_at\nNhân viên thái độ khó chịu,{old}\n"
+    client.post(f"{base}/reviews/import", files={"file": ("r.csv", csv.encode())}, headers=h)
+    # review chê duy nhất đã 60 ngày: 30 ngày không có gì để đọc, 3 tháng và toàn bộ lịch sử thì có
+    assert client.post(f"{base}/insights", params={"days": 30}, headers=h).status_code == 400
+    assert client.post(f"{base}/insights", params={"days": 90}, headers=h).json()["content"]["window_days"] == 90
+    assert client.post(f"{base}/insights", params={"all_time": "true"}, headers=h).json()["content"]["window_days"] is None

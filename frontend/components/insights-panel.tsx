@@ -11,15 +11,17 @@ import { useCallback, useEffect, useState } from "react";
 
 const SHOWN = 3; // cột phải dashboard: 3 khía cạnh nhiều lượt chê nhất, phần còn lại mở khi cần
 
-// ngày bắt đầu cửa sổ AI đọc, theo giờ VN (bộ lọc date_from tính theo ngày VN)
+// ngày bắt đầu cửa sổ AI đọc: N ngày theo lịch VN tính cả ngày tạo (giống backend), để link ra đúng số lượt chê
 const since = (iso: string, days: number) =>
-  new Date(new Date(iso).getTime() - days * 86400e3).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+  new Date(new Date(iso).getTime() - (days - 1) * 86400e3).toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+const windowText = (days: number | null) => (days ? `${days} ngày qua` : "từ trước tới nay");
 
 const formatTime = (iso: string) =>
   new Date(iso).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric" });
 
 // Tóm tắt AI: vấn đề chính và việc nên làm theo khía cạnh. Lưu ở backend nên mở trang không phải chạy AI lại.
-export function InsightsPanel({ storeId, canRegenerate }: { storeId: number; canRegenerate: boolean }) {
+// days: khoảng đang chọn ở Tổng quan (null = tất cả); bấm Cập nhật thì AI đọc đúng khoảng đó
+export function InsightsPanel({ storeId, canRegenerate, days }: { storeId: number; canRegenerate: boolean; days: number | null }) {
   const [insight, setInsight] = useState<Insight | null | undefined>(undefined); // undefined = đang tải
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -35,12 +37,12 @@ export function InsightsPanel({ storeId, canRegenerate }: { storeId: number; can
     setBusy(true);
     setError("");
     try {
-      setInsight(await api<Insight>(`/stores/${storeId}/insights`, { method: "POST" }));
+      setInsight(await api<Insight>(`/stores/${storeId}/insights?${days ? `days=${days}` : "all_time=true"}`, { method: "POST" }));
     } catch (e) {
       setError((e as Error).message);
     }
     setBusy(false);
-  }, [storeId]);
+  }, [storeId, days]);
 
   const c = insight?.content;
   const item = (a: NonNullable<typeof c>["aspects"][number], i: number) => (
@@ -48,7 +50,7 @@ export function InsightsPanel({ storeId, canRegenerate }: { storeId: number; can
       <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="font-medium">{ASPECT_LABEL[a.aspect] ?? a.aspect}</span>
         {/* cùng cửa sổ ngày và bỏ review đã ẩn như lúc AI đọc, để số review mở ra khớp số lượt chê */}
-        <Link href={`/reviews?aspect=${a.aspect}&sentiment=negative&hidden=false&date_from=${since(insight!.generated_at, c!.window_days)}`}
+        <Link href={`/reviews?aspect=${a.aspect}&sentiment=negative&hidden=false${c!.window_days ? `&date_from=${since(insight!.generated_at, c!.window_days)}` : ""}`}
           className="tap num text-xs whitespace-nowrap text-accent hover:underline">
           {a.mentions} lượt chê
         </Link>
@@ -74,7 +76,7 @@ export function InsightsPanel({ storeId, canRegenerate }: { storeId: number; can
         {canRegenerate && (
           // nút thật (không phải link chữ): chủ quán dễ bỏ qua tính năng AI nếu nó chỉ là chữ nhỏ
           <button className="btn btn-primary disabled:cursor-wait" onClick={regenerate} disabled={busy}
-            title="AI đọc lại đánh giá tiêu cực 30 ngày qua và viết gợi ý mới">
+            title={`AI đọc lại đánh giá tiêu cực ${windowText(days)} và viết gợi ý mới`}>
             <Sparkles aria-hidden className="size-4 text-gold" />
             {busy ? <Busy text="AI đang đọc" /> : insight ? "Cập nhật gợi ý AI" : "Tạo gợi ý AI"}
           </button>
@@ -83,9 +85,15 @@ export function InsightsPanel({ storeId, canRegenerate }: { storeId: number; can
       <div className="panel">
         <p className="border-b border-rule px-4 py-2.5 text-xs text-muted">
           {insight
-            ? `AI đọc ${c!.negative_reviews} đánh giá tiêu cực ${c!.window_days} ngày qua · ${formatTime(insight.generated_at)}`
-            : `AI đọc đánh giá tiêu cực 30 ngày qua và đề xuất việc nên làm, mất khoảng nửa phút`}
+            ? `AI đọc ${c!.negative_reviews} đánh giá tiêu cực ${windowText(c!.window_days)} · ${formatTime(insight.generated_at)}`
+            : `AI đọc đánh giá tiêu cực ${windowText(days)} và đề xuất việc nên làm, mất khoảng nửa phút`}
         </p>
+        {/* gợi ý đã lưu có thể tính cho khoảng khác với khoảng đang xem ở trên */}
+        {insight && c!.window_days !== days && (
+          <p className="border-b border-rule bg-raised px-4 py-2 text-xs text-muted">
+            Gợi ý này tính cho {windowText(c!.window_days)}, khác khoảng đang chọn.{canRegenerate && " Bấm “Cập nhật gợi ý AI” để tính lại."}
+          </p>
+        )}
         {error && <p role="alert" className="px-4 pt-3 text-sm text-negative">{error}</p>}
         {insight === undefined && !error && <Skeleton lines={4} className="px-4 py-4" />}
         {insight === null && !error && (

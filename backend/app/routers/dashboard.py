@@ -48,9 +48,13 @@ def summary(days: int | None = Query(None, ge=1, le=3650), store: Store = Depend
     def row(counter):
         return {s: counter[s] for s in SENTIMENTS}
 
-    # shortcut: tách từ ~3ms/review nên chỉ xét 200 review chê gần nhất; cần cả lịch sử thì tính sẵn khi phân tích
     complaints = [r.content for r in sorted(analyzed, key=lambda r: r.created_at, reverse=True)
-                  if r.analysis.sentiment == "negative" or any(a.sentiment == "negative" for a in r.aspects)][:200]
+                  if r.analysis.sentiment == "negative" or any(a.sentiment == "negative" for a in r.aspects)]
+    # shortcut: tách từ ~3ms/review nên chỉ tìm cụm trong 200 review chê gần nhất; cần cả lịch sử thì tính sẵn khi phân tích.
+    # Số hiển thị đếm lại đúng như trang Đánh giá lọc (?q=cụm&complaint=true): review có lời chê chứa cụm đó, bấm vào ra đúng số ấy
+    lowered = [c.lower() for c in complaints]
+    phrases = [{"phrase": p["phrase"], "count": sum(p["phrase"] in c for c in lowered)} for p in complaint_phrases(complaints[:200], top=12)]
+    phrases = sorted((p for p in phrases if p["count"] >= 2), key=lambda p: -p["count"])[:8]
     ratings = [r.rating for r in reviews if r.rating]
     aspect_rows = [{"aspect": a, **row(c), "total": sum(c.values()), "latest_negative": latest_negative.get(a)}
                    for a, c in aspects.items()]
@@ -65,7 +69,7 @@ def summary(days: int | None = Query(None, ge=1, le=3650), store: Store = Depend
                    "avg_rating": round(sum(week_ratings[w]) / len(week_ratings[w]), 2) if week_ratings[w] else None}
                   for w, c in sorted(trend.items())],
         "aspects": sorted(aspect_rows, key=lambda x: x["total"], reverse=True),
-        "complaints": complaint_phrases(complaints),
+        "complaints": phrases,
     }
 
 

@@ -15,7 +15,7 @@ import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 const PAGE = 50;
 const TABS = [["", "Tất cả"], ["negative", SENTIMENT_LABEL.negative], ["neutral", SENTIMENT_LABEL.neutral], ["positive", SENTIMENT_LABEL.positive]];
-const FILTERS = ["q", "aspect", "source", "replied", "spam", "hidden", "date_from", "date_to"] as const;
+const FILTERS = ["q", "complaint", "aspect", "source", "replied", "spam", "hidden", "date_from", "date_to"] as const;
 
 export default function ReviewsPage() {
   return (
@@ -52,8 +52,9 @@ function Reviews() {
     setReviews(null);
     setError("");
     fetchPage(0).then(setReviews, (e) => setError(e.message));
+    // theo id: danh sách quán tải lại tạo object mới, không được xóa danh sách đang xem
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [store, query]);
+  }, [store?.id, query]);
 
   function setFilter(key: string, value: string) {
     const q = new URLSearchParams(query);

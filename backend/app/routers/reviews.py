@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta, timezone
 
 import pandas as pd
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response, UploadFile, status
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
@@ -34,6 +34,7 @@ def filtered_reviews(
     spam: bool | None = None,
     hidden: bool | None = None,
     search: str | None = Query(None, alias="q", max_length=100),
+    complaint: bool | None = None,
 ):
     """Bộ lọc dùng chung cho danh sách và file Excel, để file xuất ra khớp đúng những gì đang xem."""
     q = select(Review).where(Review.store_id == store.id)
@@ -54,6 +55,9 @@ def filtered_reviews(
         # tìm chữ trong nội dung (cụm từ bị chê ở Tổng quan dẫn sang đây); %, _ người dùng gõ là chữ thường, không phải ký tự đại diện
         term = search.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         q = q.where(Review.content.ilike(f"%{term}%", escape="\\"))
+    if complaint:  # review có lời chê: cả review tiêu cực hoặc có khía cạnh bị chê (như khối "Khách hay nhắc khi chê")
+        q = q.where(or_(Review.id.in_(select(ReviewAnalysis.review_id).where(ReviewAnalysis.sentiment == "negative")),
+                        Review.id.in_(select(ReviewAspect.review_id).where(ReviewAspect.sentiment == "negative"))))
     if spam is not None:
         q = q.where(Review.spam_reasons.is_not(None) if spam else Review.spam_reasons.is_(None))
     if hidden is not None:

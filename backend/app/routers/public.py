@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -18,10 +20,15 @@ per_ip = SlidingWindow(5, 60, "Gửi quá nhiều, thử lại sau 1 phút")
 per_store = SlidingWindow(30, 60, "Quán đang nhận quá nhiều góp ý, thử lại sau ít phút")
 
 
+# chạy trong Docker, frontend (proxy) gọi backend từ IP mạng nội bộ của Docker chứ không phải 127.0.0.1;
+# docker-compose đặt TRUST_PROXY=1 và không mở cổng backend ra ngoài, nên chỉ frontend gọi tới được
+TRUST_PROXY = os.getenv("TRUST_PROXY") == "1"
+
+
 def _client_ip(request: Request) -> str:
     host = request.client.host if request.client else "unknown"
-    # chỉ tin X-Forwarded-For khi request đến từ proxy chạy cùng máy; gọi thẳng backend từ máy khác thì dùng IP socket
-    if host in ("127.0.0.1", "::1") and (fwd := request.headers.get("x-forwarded-for")):
+    # chỉ tin X-Forwarded-For khi request đến từ proxy của mình; gọi thẳng backend từ máy khác thì dùng IP socket
+    if (TRUST_PROXY or host in ("127.0.0.1", "::1")) and (fwd := request.headers.get("x-forwarded-for")):
         return fwd.split(",")[0].strip()
     return host
 

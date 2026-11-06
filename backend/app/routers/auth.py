@@ -31,7 +31,7 @@ def register(body: UserCreate, db: Session = Depends(get_db)):
     user = User(email=email, password_hash=hash_password(body.password))
     db.add(user)
     db.commit()
-    return Token(access_token=create_token(user.id))
+    return Token(access_token=create_token(user))
 
 
 @router.post("/login", response_model=Token)
@@ -43,10 +43,10 @@ def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get
         failed_logins.hit(email)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Sai email hoặc mật khẩu")
     failed_logins.reset(email)
-    return Token(access_token=create_token(user.id))
+    return Token(access_token=create_token(user))
 
 
-# shortcut: đổi mật khẩu không thu hồi token đăng nhập cũ (hết hạn sau 12 giờ); cần thu hồi ngay thì lưu "phiên bản token" trong User
+# đổi mật khẩu: token đăng nhập gắn dấu vân tay mật khẩu (security.create_token) nên mọi phiên cũ hết hiệu lực
 @router.post("/change-password")
 def change_password(body: PasswordChange, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     failed_logins.check(user.email)  # đoán mật khẩu hiện tại qua đây cũng là dò mật khẩu

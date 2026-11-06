@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from ..db import get_db
@@ -21,10 +21,12 @@ def latest(store: Store = Depends(staff_store), db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=InsightOut)
-def regenerate(store: Store = Depends(manager_store), db: Session = Depends(get_db)):
+def regenerate(days: int | None = Query(insights.WINDOW_DAYS, ge=1, le=3650), all_time: bool = False,
+               store: Store = Depends(manager_store), db: Session = Depends(get_db)):
+    """days: khoảng đang chọn ở Tổng quan; all_time=true là toàn bộ lịch sử."""
     per_store.check(str(store.id))  # chỉ tính lượt khi AI trả kết quả thành công
     try:
-        result = insights.generate(db, store)
+        result = insights.generate(db, store, None if all_time else days)
         per_store.hit(str(store.id))
         return result
     except insights.NothingToAnalyze as e:

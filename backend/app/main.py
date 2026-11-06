@@ -18,6 +18,7 @@ async def lifespan(app: FastAPI):
     migrate()  # Alembic upgrade head; đổi cấu trúc bảng thì thêm migration trong alembic/versions
     nlp.load_model()  # nạp PhoBERT trước request đầu tiên (nếu đặt NLP_MODEL_DIR)
     threading.Thread(target=analyze_pending, daemon=True).start()  # chạy nền, không chặn server mở cổng
+    threading.Thread(target=nlp.warm_up, daemon=True).start()
     weekly_report.start_scheduler()
     yield
 

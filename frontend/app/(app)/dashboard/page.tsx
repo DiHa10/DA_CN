@@ -42,15 +42,17 @@ export default function DashboardPage() {
     try { localStorage.setItem(RANGE_KEY, r); } catch {}
   };
 
+  // theo id: danh sách quán tải lại tạo object mới, không được tải lại cả trang Tổng quan
+  const storeId = store?.id;
   const load = useCallback(() => {
-    if (!store) return;
+    if (!storeId) return;
     setError("");
     Promise.all([
-      api<Summary>(`/stores/${store.id}/dashboard${range === "all" ? "" : `?days=${range}`}`),
-      api<Review[]>(`/stores/${store.id}/reviews?sentiment=negative&hidden=false&limit=3`),
-      api<Anomalies>(`/stores/${store.id}/dashboard/anomalies`),
+      api<Summary>(`/stores/${storeId}/dashboard${range === "all" ? "" : `?days=${range}`}`),
+      api<Review[]>(`/stores/${storeId}/reviews?sentiment=negative&hidden=false&limit=3`),
+      api<Anomalies>(`/stores/${storeId}/dashboard/anomalies`),
     ]).then(([s, r, a]) => { setData(s); setRecent(r); setAnomalies(a); }, (e) => setError(e.message));
-  }, [store, range]);
+  }, [storeId, range]);
   useEffect(load, [load]);
   const rangeLabel = RANGES.find(([k]) => k === range)![1];
 
@@ -116,7 +118,7 @@ export default function DashboardPage() {
             <Trend data={data} />
           </div>
           <div className="space-y-6">
-            {store && <InsightsPanel storeId={store.id} canRegenerate={can(store, "manager")} />}
+            {store && <InsightsPanel storeId={store.id} canRegenerate={can(store, "manager")} days={range === "all" ? null : Number(range)} />}
             <Complaints items={data.complaints} since={data.since} />
             <RecentNegative reviews={recent} />
           </div>
@@ -325,7 +327,7 @@ function Complaints({ items, since }: { items: Summary["complaints"]; since: str
       <ul className="panel space-y-2 px-4 py-3">
         {items.map((c) => (
           <li key={c.phrase} className="grid grid-cols-[minmax(0,1fr)_72px_24px] items-center gap-3 text-sm">
-            <Link href={`/reviews?q=${encodeURIComponent(c.phrase)}${since ? `&date_from=${since}` : ""}`}
+            <Link href={`/reviews?q=${encodeURIComponent(c.phrase)}&complaint=true&hidden=false${since ? `&date_from=${since}` : ""}`}
               className="tap truncate font-medium hover:underline">
               {c.phrase}
             </Link>

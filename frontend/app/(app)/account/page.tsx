@@ -18,7 +18,10 @@ export default function AccountPage() {
     try {
       await api("/auth/change-password", json("POST", { current_password: f.get("current_password"), new_password: f.get("new_password") }));
       form.reset();
-      setStatus({ ok: true, text: "Đã đổi mật khẩu. Lần đăng nhập sau dùng mật khẩu mới." });
+      // đổi mật khẩu làm mọi phiên đăng nhập cũ hết hiệu lực, kể cả phiên này: đưa về trang đăng nhập
+      setStatus({ ok: true, text: "Đã đổi mật khẩu. Đang chuyển về trang đăng nhập, hãy đăng nhập bằng mật khẩu mới…" });
+      await fetch("/api/auth", { method: "DELETE" });
+      setTimeout(() => location.assign("/login"), 1500);
     } catch (err) {
       setStatus({ ok: false, text: (err as Error).message });
     }

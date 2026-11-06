@@ -43,3 +43,13 @@ def test_forgot_and_reset(client, monkeypatch, tmp_path):
     for _ in range(2):
         client.post("/auth/forgot", json={"email": "owner@test.vn"})
     assert client.post("/auth/forgot", json={"email": "owner@test.vn"}).status_code == 429
+
+
+def test_password_change_ends_other_sessions(client):
+    h = auth_headers(client)
+    other_device = {"Authorization": "Bearer " + login(client, "12345678").json()["access_token"]}
+    client.post("/auth/change-password", json={"current_password": "12345678", "new_password": "abcdefgh"}, headers=h)
+    assert client.get("/stores", headers=other_device).status_code == 401
+    assert client.get("/stores", headers=h).status_code == 401  # cả phiên vừa đổi: đăng nhập lại bằng mật khẩu mới
+    fresh = {"Authorization": "Bearer " + login(client, "abcdefgh").json()["access_token"]}
+    assert client.get("/stores", headers=fresh).status_code == 200

@@ -49,6 +49,9 @@ services:
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      # IP khách lấy từ X-Forwarded-For do frontend gửi (chặn spam QR theo từng khách). An toàn vì backend
+      # không mở cổng ra ngoài: chỉ frontend trong mạng Docker gọi được
+      TRUST_PROXY: "1"
     volumes:
       - ./ml/models:/models:ro
       - ./backend/outbox:/app/outbox  # email khi chưa cấu hình Gmail: mở file .eml ở backend/outbox để xem
@@ -57,13 +60,14 @@ services:
         condition: service_healthy
       ollama:
         condition: service_started
-    ports:
-      - "8000:8000"
 
   frontend:
     build: ./frontend
     environment:
       BACKEND_URL: http://backend:8000
+      # chạy http (localhost hoặc IP trong mạng LAN khi demo): cookie Secure bị trình duyệt bỏ, không đăng nhập được.
+      # Có HTTPS thì đặt COOKIE_SECURE=true trong .env
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
     depends_on:
       - backend
     ports:

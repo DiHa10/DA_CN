@@ -31,16 +31,17 @@ def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
 
-def create_token(user_id: int) -> str:
+def _fingerprint(user: User) -> str:
+    return hashlib.sha256(user.password_hash.encode()).hexdigest()[:16]
+
+
+def create_token(user: User) -> str:
+    # pw: dấu vân tay mật khẩu; đổi mật khẩu là mọi phiên đăng nhập cũ (kể cả máy khác) hết hiệu lực ngay
     exp = datetime.now(timezone.utc) + TOKEN_TTL
-    return jwt.encode({"sub": str(user_id), "exp": exp}, SECRET_KEY, algorithm="HS256")
+    return jwt.encode({"sub": str(user.id), "pw": _fingerprint(user), "exp": exp}, SECRET_KEY, algorithm="HS256")
 
 
 RESET_TTL = timedelta(minutes=30)
-
-
-def _fingerprint(user: User) -> str:
-    return hashlib.sha256(user.password_hash.encode()).hexdigest()[:16]
 
 
 def create_reset_token(user: User) -> str:
@@ -68,8 +69,8 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if payload.get("purpose"):  # token đặt lại mật khẩu ký cùng khóa: không được dùng để đăng nhập
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token không hợp lệ")
     user = db.get(User, user_id)
-    if not user:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token không hợp lệ")
+    if not user or payload.get("pw") != _fingerprint(user):  # mật khẩu đã đổi sau khi token được cấp
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Phiên đăng nhập đã hết, hãy đăng nhập lại")
     return user
 
 

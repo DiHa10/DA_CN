@@ -11,6 +11,7 @@ from ..ratelimit import SlidingWindow
 from ..schemas import MemberIn, MemberOut, ReportSettings, RoleIn, StoreIn, StoreOut
 from ..security import get_current_user, owner_store, staff_store
 from ..services import weekly_report
+from ..timeutil import vn_date, vn_day_start
 
 router = APIRouter(prefix="/stores", tags=["stores"])
 
@@ -44,7 +45,8 @@ def compare_stores(user: User = Depends(get_current_user), db: Session = Depends
     stores = db.execute(select(Store.id, Store.name).join(StoreMember).where(StoreMember.user_id == user.id)
                         .order_by(Store.id)).all()
     ids = [s.id for s in stores]
-    since = datetime.now(timezone.utc) - timedelta(days=COMPARE_DAYS)
+    # cùng cách tính "30 ngày" với Tổng quan (theo lịch VN, tính cả hôm nay), để số liệu hai trang khớp nhau
+    since = vn_day_start(vn_date(datetime.now(timezone.utc)) - timedelta(days=COMPARE_DAYS - 1))
     in_window = (Review.store_id.in_(ids), Review.created_at >= since, counted())
 
     sentiment = defaultdict(Counter)

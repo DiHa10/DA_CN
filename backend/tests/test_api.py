@@ -221,3 +221,6 @@ def test_search_and_complaint_phrases(client):
 
     dash = client.get(f"/stores/{store['id']}/dashboard", headers=h).json()
     assert dash["complaints"][0] == {"phrase": "phục vụ chậm", "count": 3}
+    # bấm vào cụm từ ra đúng số đã hiện
+    linked = client.get(base, params={"q": "phục vụ chậm", "complaint": "true", "hidden": "false"}, headers=h).json()
+    assert len(linked) == 3

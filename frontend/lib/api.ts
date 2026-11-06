@@ -67,7 +67,7 @@ export type Insight = {
   generated_at: string;
   content: {
     headline: string;
-    window_days: number;
+    window_days: number | null;
     negative_reviews: number;
     aspects: { aspect: string; problem: string; actions: string[]; mentions: number }[];
   };

@@ -6,6 +6,7 @@ Hai nhánh, cùng chữ ký analyze_batch:
 """
 
 import os
+import threading
 from collections import Counter
 import re
 from pathlib import Path
@@ -129,6 +130,7 @@ def analyze(text: str) -> dict:
 
 
 _predictor = None
+_load_lock = threading.Lock()  # luồng khởi động và request đầu tiên cùng gọi: không được nạp PhoBERT (~500 MB) hai lần
 
 
 def load_model():
@@ -137,11 +139,19 @@ def load_model():
     model_dir = os.getenv("NLP_MODEL_DIR")
     if os.getenv("NLP_BACKEND") == "lexicon" or not model_dir or not (Path(model_dir) / "head.pt").exists():
         return None
-    if _predictor is None:
-        from .absa_model import AbsaPredictor  # torch nặng, chỉ import khi thật sự dùng
+    with _load_lock:
+        if _predictor is None:
+            from .absa_model import AbsaPredictor  # torch nặng, chỉ import khi thật sự dùng
 
-        _predictor = AbsaPredictor(model_dir)
+            _predictor = AbsaPredictor(model_dir)
     return _predictor
+
+
+def warm_up() -> None:
+    """Nạp sẵn bộ tách từ (~3 giây) lúc khởi động, để lần mở Tổng quan đầu tiên không phải chờ."""
+    from underthesea import word_tokenize
+
+    word_tokenize("khởi động")
 
 
 def _from_rating(rating: int | None, fallback: str) -> str:

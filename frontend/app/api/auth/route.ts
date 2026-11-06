@@ -24,7 +24,8 @@ export async function POST(req: NextRequest) {
   out.cookies.set("token", data.access_token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    // COOKIE_SECURE ghi đè: production chạy http (Docker trên LAN khi demo) thì cookie Secure bị bỏ, không đăng nhập được
+    secure: process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === "true" : process.env.NODE_ENV === "production",
     path: "/",
     maxAge: 12 * 60 * 60, // khớp TOKEN_TTL của backend
   });

@@ -8,9 +8,10 @@ from sqlalchemy.orm import Session
 
 from ..labels import ASPECT_VI
 from ..models import Review, ReviewAspect, Store, StoreInsight, counted, utcnow
+from ..timeutil import vn_date, vn_day_start
 from . import llm
 
-WINDOW_DAYS = 30
+WINDOW_DAYS = 30  # mặc định; Tổng quan truyền khoảng đang chọn
 PER_ASPECT = 20  # mỗi lần gọi chỉ một khía cạnh: 20 x 200 ký tự ~ 2k token, vừa sức model 3B
 MAX_CHARS = 200
 
@@ -43,15 +44,21 @@ class NothingToAnalyze(Exception):
     pass
 
 
-def collect_negative(db: Session, store: Store, now: datetime) -> tuple[dict[str, list[str]], dict[str, int], int]:
-    """Review tiêu cực trong WINDOW_DAYS ngày: (câu mới nhất theo khía cạnh, tổng số theo khía cạnh, số review)."""
-    since = now - timedelta(days=WINDOW_DAYS)
-    rows = db.execute(
-        select(Review.id, Review.content, ReviewAspect.aspect)
-        .join(ReviewAspect, ReviewAspect.review_id == Review.id)
-        .where(Review.store_id == store.id, ReviewAspect.sentiment == "negative", Review.created_at >= since, counted())
-        .order_by(Review.created_at.desc(), Review.id.desc())
-    ).all()
+def window_label(days: int | None) -> str:
+    return f"{days} ngày qua" if days else "từ trước tới nay"
+
+
+def collect_negative(db: Session, store: Store, now: datetime, days: int | None = WINDOW_DAYS
+                     ) -> tuple[dict[str, list[str]], dict[str, int], int]:
+    """Review tiêu cực trong `days` ngày theo lịch VN, tính cả hôm nay (giống Tổng quan); None là toàn bộ lịch sử.
+    Trả về (câu mới nhất theo khía cạnh, tổng số theo khía cạnh, số review)."""
+    q = (select(Review.id, Review.content, ReviewAspect.aspect)
+         .join(ReviewAspect, ReviewAspect.review_id == Review.id)
+         .where(Review.store_id == store.id, ReviewAspect.sentiment == "negative", counted())
+         .order_by(Review.created_at.desc(), Review.id.desc()))
+    if days:
+        q = q.where(Review.created_at >= vn_day_start(vn_date(now) - timedelta(days=days - 1)))
+    rows = db.execute(q).all()
     samples: dict[str, list[str]] = {}
     counts: dict[str, int] = {}
     for _, content, aspect in rows:
@@ -61,11 +68,11 @@ def collect_negative(db: Session, store: Store, now: datetime) -> tuple[dict[str
     return samples, counts, len({r.id for r in rows})
 
 
-def generate(db: Session, store: Store) -> StoreInsight:
-    samples, counts, n_reviews = collect_negative(db, store, datetime.now(timezone.utc))
+def generate(db: Session, store: Store, days: int | None = WINDOW_DAYS) -> StoreInsight:
+    samples, counts, n_reviews = collect_negative(db, store, datetime.now(timezone.utc), days)
     db.commit()  # trả kết nối DB về pool trước khi chờ AI (có thể tới cả phút)
     if not samples:
-        raise NothingToAnalyze(f"Chưa có đánh giá tiêu cực nào trong {WINDOW_DAYS} ngày qua để phân tích")
+        raise NothingToAnalyze(f"Chưa có đánh giá tiêu cực nào {window_label(days)} để phân tích")
 
     # một lần gọi cho mỗi khía cạnh: gộp chung thì model 3B bỏ sót khía cạnh và nói lẫn sang khía cạnh khác
     aspects = []
@@ -73,7 +80,7 @@ def generate(db: Session, store: Store) -> StoreInsight:
         prompt = "\n".join([
             f"Quán: {json.dumps(store.name, ensure_ascii=False)}",
             f"Khía cạnh: {ASPECT_VI.get(a, a)} ({ASPECT_SCOPE.get(a, a)})",
-            f"Đánh giá tiêu cực {WINDOW_DAYS} ngày qua có chê khía cạnh này (JSON):",
+            f"Đánh giá tiêu cực {window_label(days)} có chê khía cạnh này (JSON):",
             json.dumps(texts, ensure_ascii=False),
         ])
         out = llm.generate_json(SYSTEM, prompt, SCHEMA)
@@ -85,7 +92,7 @@ def generate(db: Session, store: Store) -> StoreInsight:
 
     insight = db.get(StoreInsight, store.id) or StoreInsight(store_id=store.id)
     insight.content = {"headline": headline, "aspects": aspects,
-                       "window_days": WINDOW_DAYS, "negative_reviews": n_reviews}
+                       "window_days": days, "negative_reviews": n_reviews}
     insight.generated_at = utcnow()
     db.add(insight)
     db.commit()

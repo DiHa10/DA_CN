@@ -29,25 +29,26 @@ function writeSeen(storeId: number, id: number) {
 }
 
 export function NegativeAlertProvider({ children }: { children: React.ReactNode }) {
-  const { store } = useStores();
+  // bám theo id, không theo object: danh sách quán tải lại tạo object mới, làm vòng hỏi chạy lại ngay (từng thấy 8 request cùng lúc)
+  const storeId = useStores().store?.id;
   const [latest, setLatest] = useState<Review[]>([]);
   const [seen, setSeen] = useState<number | null>(null);
 
   const poll = useCallback(async () => {
-    if (!store) return;
-    const rows = await api<Review[]>(`/stores/${store.id}/reviews?sentiment=negative&hidden=false&limit=50`).catch(() => null);
+    if (!storeId) return;
+    const rows = await api<Review[]>(`/stores/${storeId}/reviews?sentiment=negative&hidden=false&limit=50`).catch(() => null);
     if (!rows) return;
-    let mark = readSeen(store.id);
+    let mark = readSeen(storeId);
     const top = Math.max(0, ...rows.map((r) => r.id));
     // lần đầu mở: không báo toàn bộ lịch sử là "mới";
     // mốc lớn hơn mọi id hiện có = database đã bị reset (id đánh lại từ 1), mốc cũ không còn ý nghĩa
     if (mark === null || top < mark) {
       mark = top;
-      writeSeen(store.id, mark);
+      writeSeen(storeId, mark);
     }
     setSeen(mark);
     setLatest(rows);
-  }, [store]);
+  }, [storeId]);
 
   useEffect(() => {
     poll();
@@ -58,11 +59,11 @@ export function NegativeAlertProvider({ children }: { children: React.ReactNode 
   const newIds = new Set(seen === null ? [] : latest.filter((r) => r.id > seen).map((r) => r.id));
 
   const markSeen = useCallback(() => {
-    if (!store || !latest.length) return;
+    if (!storeId || !latest.length) return;
     const top = Math.max(...latest.map((r) => r.id));
-    writeSeen(store.id, top);
+    writeSeen(storeId, top);
     setSeen(top);
-  }, [store, latest]);
+  }, [storeId, latest]);
 
   return <AlertCtx.Provider value={{ newIds, markSeen }}>{children}</AlertCtx.Provider>;
 }
