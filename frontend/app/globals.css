@@ -11,7 +11,7 @@
   --cream: #fcf9f0;
   --blue: #1b6c80;
 
-  --ground: #f4f2ee; /* khung: đá ấm */
+  --ground: #f4f3f0; /* khung: đá ấm, ít vàng */
   --surface: #ffffff; /* tờ trắng và thẻ */
   --raised: #f6f5f2;
   --active: #e9e7e2; /* mục menu đang chọn: một bậc tông, không màu */
@@ -331,6 +331,27 @@ body {
 .hold.holding::before {
   transform: scaleX(1);
   transition: transform var(--hold) linear;
+}
+
+/* trang giới thiệu: phần tử ẩn sẵn ngay từ HTML (không nháy hiện rồi mới ẩn), JS thêm .in (hoặc anime đặt style trực tiếp) khi nó thật sự
+   vào màn hình. Không có JS: <noscript> trong trang gỡ các luật này. Giảm chuyển động: luật không áp dụng, mọi thứ hiện sẵn */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal-ready [data-reveal] {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
+    transition-delay: var(--d, 0ms);
+  }
+  .reveal-ready [data-reveal].in {
+    opacity: 1;
+    transform: none;
+  }
+  .reveal-ready [data-hide] {
+    opacity: 0;
+  }
+  html:has(.reveal-ready) {
+    scroll-behavior: smooth;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
