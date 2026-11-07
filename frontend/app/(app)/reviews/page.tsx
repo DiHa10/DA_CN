@@ -5,6 +5,7 @@ import { Icon3D } from "@/components/icon3d";
 import { ReplyBox } from "@/components/reply-box";
 import { AspectChip, SentimentBadge } from "@/components/sentiment-badge";
 import { AspectEditor } from "@/components/aspect-editor";
+import { HandlingBox } from "@/components/handling-box";
 import { Skeleton } from "@/components/skeleton";
 import { useStores } from "@/components/store-context";
 import { api, can, json, type Review } from "@/lib/api";
@@ -15,7 +16,7 @@ import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 const PAGE = 50;
 const TABS = [["", "Tất cả"], ["negative", SENTIMENT_LABEL.negative], ["neutral", SENTIMENT_LABEL.neutral], ["positive", SENTIMENT_LABEL.positive]];
-const FILTERS = ["q", "complaint", "aspect", "source", "replied", "spam", "hidden", "date_from", "date_to"] as const;
+const FILTERS = ["q", "complaint", "status", "aspect", "source", "replied", "spam", "hidden", "date_from", "date_to"] as const;
 
 export default function ReviewsPage() {
   return (
@@ -122,6 +123,7 @@ function Reviews() {
         {select("aspect", "Khía cạnh", ASPECT_LABEL)}
         {select("source", "Nguồn", SOURCE_LABEL)}
         {select("replied", "Phản hồi", { false: "Chưa trả lời", true: "Đã trả lời" })}
+        {select("status", "Xử lý", { open: "Chưa xong", todo: "Chưa xử lý", doing: "Đang xử lý", done: "Đã xử lý" })}
         {select("spam", "Spam", { true: "Nghi spam", false: "Không nghi spam" })}
         {select("hidden", "Thống kê", { false: "Đang tính", true: "Đã ẩn" })}
         <label htmlFor="date_from" className="text-sm text-muted">Từ</label>
@@ -188,6 +190,7 @@ function Reviews() {
                       {r.analysis && can(store, "manager") && <AspectEditor storeId={store!.id} review={r} onSaved={replace} />}
                     </div>
                   )}
+                  {(r.status || isComplaint(r)) && <HandlingBox storeId={store!.id} review={r} onSaved={replace} />}
                   <ReplyBox storeId={store!.id} review={r} onSaved={replace} />
                 </td>
                 <td className="text-xs text-muted md:py-3 md:pr-4 md:text-sm">{SOURCE_LABEL[r.source] ?? r.source}</td>
@@ -217,6 +220,9 @@ function Reviews() {
     </div>
   );
 }
+
+// giống bộ lọc complaint=true của backend: review tiêu cực hoặc có khía cạnh bị chê
+const isComplaint = (r: Review) => r.analysis?.sentiment === "negative" || r.aspects.some((a) => a.sentiment === "negative");
 
 // Tab cảm xúc: một gạch dưới duy nhất trượt tới tab đang chọn (đo vị trí, di chuyển bằng transform)
 function Tabs({ value, onChange }: { value: string; onChange: (v: string) => void }) {

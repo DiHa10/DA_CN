@@ -4,7 +4,8 @@ import { InsightsPanel } from "@/components/insights-panel";
 import { Skeleton } from "@/components/skeleton";
 import { useNegativeAlert } from "@/components/negative-alert";
 import { useStores } from "@/components/store-context";
-import { api, can, type Anomalies, type AspectRow, type Review, type Summary } from "@/lib/api";
+import { api, can, type Action, type Anomalies, type AspectRow, type Review, type Summary } from "@/lib/api";
+import { actionNumbers, ActionsPanel, TimeHeatmap } from "./followup";
 import {
   ACCENT, ASPECT_LABEL, formatDate, formatNum, formatPct, SENTIMENT_COLOR, SENTIMENT_LABEL, SOURCE_LABEL,
 } from "@/lib/labels";
@@ -27,6 +28,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<Summary | null>(null);
   const [recent, setRecent] = useState<Review[] | null>(null);
   const [anomalies, setAnomalies] = useState<Anomalies | null>(null);
+  const [actions, setActions] = useState<Action[]>([]);
   const [error, setError] = useState("");
   const [range, setRange] = useState<Range>("30");
 
@@ -47,11 +49,14 @@ export default function DashboardPage() {
   const load = useCallback(() => {
     if (!storeId) return;
     setError("");
+    // cùng mốc "từ ngày" với backend (ngày VN, tính cả hôm nay) để 3 lời chê khớp con số đếm
+    const from = range === "all" ? "" : `&date_from=${new Date(Date.now() + 7 * 3600e3 - (Number(range) - 1) * 86400e3).toISOString().slice(0, 10)}`;
     Promise.all([
       api<Summary>(`/stores/${storeId}/dashboard${range === "all" ? "" : `?days=${range}`}`),
-      api<Review[]>(`/stores/${storeId}/reviews?sentiment=negative&hidden=false&limit=3`),
+      api<Review[]>(`/stores/${storeId}/reviews?complaint=true&status=open&hidden=false&limit=3${from}`),
       api<Anomalies>(`/stores/${storeId}/dashboard/anomalies`),
-    ]).then(([s, r, a]) => { setData(s); setRecent(r); setAnomalies(a); }, (e) => setError(e.message));
+      api<Action[]>(`/stores/${storeId}/actions`),
+    ]).then(([s, r, a, act]) => { setData(s); setRecent(r); setAnomalies(a); setActions(act); }, (e) => setError(e.message));
   }, [storeId, range]);
   useEffect(load, [load]);
   const rangeLabel = RANGES.find(([k]) => k === range)![1];
@@ -115,12 +120,14 @@ export default function DashboardPage() {
           <div className="min-w-0 space-y-6">
             <Kpis data={data} rangeLabel={rangeLabel} />
             <AspectBoard aspects={aspects} since={data.since} />
-            <Trend data={data} />
+            <Trend data={data} actions={actions} />
+            {store && <ActionsPanel storeId={store.id} actions={actions} canEdit={can(store, "manager")} onChange={setActions} />}
+            <TimeHeatmap data={data.by_time} />
           </div>
           <div className="space-y-6">
             {store && <InsightsPanel storeId={store.id} canRegenerate={can(store, "manager")} days={range === "all" ? null : Number(range)} />}
             <Complaints items={data.complaints} since={data.since} />
-            <RecentNegative reviews={recent} />
+            <OpenComplaints reviews={recent} count={data.open_complaints} since={data.since} />
           </div>
         </div>
       )}
@@ -250,7 +257,7 @@ function AspectBoard({ aspects, since }: { aspects: AspectRow[]; since: string |
 }
 
 // Xu hướng theo tuần: tỉ lệ chê (máy đọc lời khách) hoặc điểm sao (khách tự chấm), chọn bằng tab
-function Trend({ data }: { data: Summary }) {
+function Trend({ data, actions }: { data: Summary; actions: Action[] }) {
   const [metric, setMetric] = useState<"neg" | "star">("neg");
   const stars = metric === "star";
   const points = data.trend.map((w) => {
@@ -270,6 +277,14 @@ function Trend({ data }: { data: Summary }) {
   const rated = points.filter((p) => p.star !== null);
   const fmt = (v: number) => (stars ? `${formatNum(v, 2)}★` : `${formatNum(v)}%`);
   const series = stars ? rated.map((p) => p.star!) : points.map((p) => p.rate);
+  // mốc cải thiện: vạch dọc ở tuần chứa ngày áp dụng (tuần bắt đầu thứ Hai), số khớp khối "Việc quán đã thay đổi"
+  const numbers = actionNumbers(actions);
+  const marks = actions.flatMap((a) => {
+    const d = new Date(`${a.day}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+    const p = points.find((x) => x.week === d.toISOString().slice(0, 10));
+    return p ? [{ id: a.id, x: p.label, n: numbers.get(a.id)! }] : [];
+  });
 
   return (
     <section className="panel px-5 pt-4 pb-3">
@@ -278,6 +293,7 @@ function Trend({ data }: { data: Summary }) {
           <h2 className="heading">{stars ? "Điểm sao trung bình theo tuần" : "Tỉ lệ đánh giá tiêu cực theo tuần"}</h2>
           <p className="text-xs text-muted">
             {avg === null ? "Chưa có lượt chấm sao nào" : `Đường nét đứt: trung bình cả khoảng ${fmt(avg)}`}
+            {marks.length > 0 && ". Vạch đậm có số: mốc quán thay đổi"}
           </p>
         </div>
         <div role="group" aria-label="Chỉ số" className="flex rounded-sm border border-control p-0.5 text-xs">
@@ -299,6 +315,10 @@ function Trend({ data }: { data: Summary }) {
             <XAxis dataKey="label" {...axis} tickLine={false} minTickGap={24} />
             <YAxis domain={stars ? [1, 5] : [0, top]} ticks={ticks} unit={stars ? "" : "%"} {...axis} tickLine={false} />
             {avg !== null && <ReferenceLine y={avg} stroke="#586179" strokeDasharray="4 4" />}
+            {marks.map((m) => (
+              <ReferenceLine key={m.id} x={m.x} stroke="#0f1a2e" strokeWidth={1.5}
+                label={{ value: m.n, position: "insideTopRight", fill: "#0f1a2e", fontSize: 12, fontWeight: 600 }} />
+            ))}
             <Tooltip
               cursor={{ stroke: "#858c99" }}
               contentStyle={{ border: "1px solid #d9dee8", borderRadius: 6, background: "#fcf9f0", fontSize: 13, padding: "6px 10px" }}
@@ -340,16 +360,18 @@ function Complaints({ items, since }: { items: Summary["complaints"]; since: str
   );
 }
 
-function RecentNegative({ reviews }: { reviews: Review[] | null }) {
+// lời chê chưa xử lý xong (mới nhất trước): việc cần làm, không chỉ để đọc
+function OpenComplaints({ reviews, count, since }: { reviews: Review[] | null; count: number; since: string | null }) {
   const { newIds } = useNegativeAlert();
+  const href = `/reviews?complaint=true&status=${count ? "open" : "done"}&hidden=false${since ? `&date_from=${since}` : ""}`;
   return (
     <section>
-      <h2 className="heading mb-2">Tiêu cực gần đây</h2>
+      <h2 className="heading mb-2">Lời chê chưa xử lý <span className="num ml-1 text-ink">{count}</span></h2>
       <div className="panel">
         {!reviews ? (
           <p className="px-4 py-3 text-sm text-muted">Đang tải…</p>
         ) : reviews.length === 0 ? (
-          <p className="px-4 py-3 text-sm text-muted">Chưa có đánh giá tiêu cực nào.</p>
+          <p className="px-4 py-3 text-sm text-muted">Không còn lời chê nào chưa xử lý.</p>
         ) : (
           <ul className="notebook">
             {reviews.map((r) => (
@@ -367,7 +389,7 @@ function RecentNegative({ reviews }: { reviews: Review[] | null }) {
           </ul>
         )}
         <div className="border-t border-rule p-3">
-          <Link href="/reviews?sentiment=negative" className="btn w-full">Xem tất cả đánh giá tiêu cực</Link>
+          <Link href={href} className="btn w-full">{count ? `Xử lý ${count} lời chê` : "Xem lời chê đã xử lý"}</Link>
         </div>
       </div>
     </section>

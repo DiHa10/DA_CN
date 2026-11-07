@@ -27,12 +27,16 @@ def is_anomaly(neg: int, n: int, base_neg: int, base_n: int) -> tuple[bool, floa
     """(có bất thường không, z). Hàm thuần để test riêng ngưỡng."""
     if n < MIN_MENTIONS or base_n < MIN_BASELINE:
         return False, 0.0
-    rate, p0 = neg / n, base_neg / base_n
-    # kiểm định hai tỉ lệ: mức nền cũng chỉ là ước lượng từ mẫu; bỏ qua nhiễu của nó thì báo nhầm 2-4%/lần (ml/eval_anomaly.py)
+    z = z_score(neg, n, base_neg, base_n)
+    return neg / n - base_neg / base_n >= MIN_JUMP and z >= MIN_Z, z
+
+
+def z_score(neg: int, n: int, base_neg: int, base_n: int) -> float:
+    """z của kiểm định hai tỉ lệ (neg/n so với base_neg/base_n); dương là tỉ lệ chê tăng. Cần n, base_n > 0."""
+    # mức nền cũng chỉ là ước lượng từ mẫu; bỏ qua nhiễu của nó thì báo nhầm 2-4%/lần (ml/eval_anomaly.py)
     p = (neg + base_neg) / (n + base_n)
     p = min(max(p, 0.05), 0.95)  # tỉ lệ gộp 0% thì sai số chuẩn bằng 0: kẹp lại để z không chia cho 0
-    z = (rate - p0) / sqrt(p * (1 - p) * (1 / n + 1 / base_n))
-    return rate - p0 >= MIN_JUMP and z >= MIN_Z, z
+    return (neg / n - base_neg / base_n) / sqrt(p * (1 - p) * (1 / n + 1 / base_n))
 
 
 def detect(db: Session, store_id: int, now: datetime) -> dict:

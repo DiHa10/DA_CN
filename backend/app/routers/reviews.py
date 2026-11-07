@@ -7,10 +7,10 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..labels import ASPECT_VI, SENTIMENT_VI, SOURCE_VI, SPAM_VI
+from ..labels import ASPECT_VI, SENTIMENT_VI, SOURCE_VI, SPAM_VI, STATUS_VI
 from ..models import AspectCorrection, Review, ReviewAnalysis, ReviewAspect, Store, User, utcnow
 from ..ratelimit import SlidingWindow
-from ..schemas import AspectFix, HiddenIn, ReplyDraft, ReplyIn, ReviewIn, ReviewOut
+from ..schemas import AspectFix, HiddenIn, ReplyDraft, ReplyIn, ReviewIn, ReviewOut, StatusIn
 from ..security import get_current_user, manager_store, staff_store
 from ..services import reply, spam
 from ..services.analysis import analyze_reviews, apply_corrections
@@ -35,6 +35,7 @@ def filtered_reviews(
     hidden: bool | None = None,
     search: str | None = Query(None, alias="q", max_length=100),
     complaint: bool | None = None,
+    status: str | None = Query(None, pattern=r"^(todo|doing|done|open)$"),
 ):
     """Bộ lọc dùng chung cho danh sách và file Excel, để file xuất ra khớp đúng những gì đang xem."""
     q = select(Review).where(Review.store_id == store.id)
@@ -62,6 +63,12 @@ def filtered_reviews(
         q = q.where(Review.spam_reasons.is_not(None) if spam else Review.spam_reasons.is_(None))
     if hidden is not None:
         q = q.where(Review.hidden.is_(hidden))
+    if status == "todo":
+        q = q.where(Review.status.is_(None))
+    elif status == "open":  # chưa xong: chưa xử lý hoặc đang xử lý
+        q = q.where(or_(Review.status.is_(None), Review.status != "done"))
+    elif status:
+        q = q.where(Review.status == status)
     if replied is not None:
         q = q.where(Review.reply_text.is_not(None) if replied else Review.reply_text.is_(None))
     return q.order_by(Review.created_at.desc(), Review.id.desc())
@@ -89,8 +96,11 @@ def export_reviews(q=Depends(filtered_reviews), store: Store = Depends(manager_s
             **{label: aspects.get(key, "") for key, label in ASPECT_VI.items()},
             "Nghi spam": ", ".join(SPAM_VI.get(x, x) for x in r.spam_reasons or []),
             "Ẩn khỏi thống kê": "Có" if r.hidden else "",
+            "Xử lý": STATUS_VI.get(r.status, ""),
+            "Ghi chú xử lý": _excel_safe(r.status_note or ""),
         })
-    columns = ["Ngày", "Nguồn", "Khách", "Số sao", "Nội dung", "Cảm xúc", *ASPECT_VI.values(), "Nghi spam", "Ẩn khỏi thống kê"]
+    columns = ["Ngày", "Nguồn", "Khách", "Số sao", "Nội dung", "Cảm xúc", *ASPECT_VI.values(), "Nghi spam", "Ẩn khỏi thống kê",
+               "Xử lý", "Ghi chú xử lý"]
     buf = io.BytesIO()
     pd.DataFrame(rows, columns=columns).to_excel(buf, index=False, sheet_name="Đánh giá")
     filename = f"danh-gia-{store.slug}-{date.today().isoformat()}.xlsx"
@@ -188,6 +198,16 @@ def save_reply(review_id: int, body: ReplyIn, store: Store = Depends(staff_store
     review = _owned_review(review_id, store, db)
     text = body.reply_text.strip()
     review.reply_text, review.replied_at = (text, utcnow()) if text else (None, None)
+    db.commit()
+    return review
+
+
+@router.put("/{review_id}/status", response_model=ReviewOut)
+def set_status(review_id: int, body: StatusIn, store: Store = Depends(staff_store), db: Session = Depends(get_db)):
+    """Theo dõi đã xử lý lời chê chưa (gọi lại khách, đổi món...). Nhân viên trực tiếp xử lý nên ai cũng cập nhật được."""
+    review = _owned_review(review_id, store, db)
+    note = (body.note or "").strip()
+    review.status, review.status_note, review.status_at = body.status, note or None, utcnow()
     db.commit()
     return review
 

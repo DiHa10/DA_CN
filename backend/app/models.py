@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, String, Text, UniqueConstraint, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -30,6 +30,7 @@ class Store(Base):
 
     reviews: Mapped[list["Review"]] = relationship(cascade="all, delete-orphan")
     insight: Mapped["StoreInsight | None"] = relationship(cascade="all, delete-orphan")
+    actions: Mapped[list["StoreAction"]] = relationship(cascade="all, delete-orphan")
     members: Mapped[list["StoreMember"]] = relationship(cascade="all, delete-orphan")
 
 
@@ -60,6 +61,10 @@ class Review(Base):
     client_hash: Mapped[str | None] = mapped_column(String(64), index=True)
     spam_reasons: Mapped[list[str] | None] = mapped_column(JSON(none_as_null=True))  # None phải là SQL NULL để lọc IS NULL
     hidden: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
+    # xử lý lời chê: NULL = chưa xử lý | doing | done; ghi chú quán đã làm gì với khách này
+    status: Mapped[str | None] = mapped_column(String(10))
+    status_note: Mapped[str | None] = mapped_column(String(500))
+    status_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     analysis: Mapped["ReviewAnalysis | None"] = relationship(cascade="all, delete-orphan", lazy="selectin")
     aspects: Mapped[list["ReviewAspect"]] = relationship(cascade="all, delete-orphan", lazy="selectin")
@@ -102,6 +107,17 @@ class StoreInsight(Base):
     store_id: Mapped[int] = mapped_column(ForeignKey("stores.id", ondelete="CASCADE"), primary_key=True)
     generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     content: Mapped[dict] = mapped_column(JSON)
+
+
+class StoreAction(Base):
+    """Việc quán đã thay đổi từ một ngày (thêm người ca trưa, đổi nhà cung cấp...): mốc để so tỉ lệ chê trước và sau."""
+    __tablename__ = "store_actions"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    store_id: Mapped[int] = mapped_column(ForeignKey("stores.id", ondelete="CASCADE"), index=True)
+    day: Mapped[date]  # ngày bắt đầu áp dụng, theo giờ VN
+    aspect: Mapped[str | None] = mapped_column(String(20))  # None = tổng thể
+    note: Mapped[str] = mapped_column(String(300))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 def counted():

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
@@ -73,6 +73,17 @@ class HiddenIn(BaseModel):
     hidden: bool
 
 
+class StatusIn(BaseModel):
+    status: str | None = Field(pattern=r"^(doing|done)$")  # None = chưa xử lý
+    note: str | None = Field(default=None, max_length=500)
+
+
+class ActionIn(BaseModel):
+    day: date
+    aspect: str | None = None  # None = tổng thể
+    note: str = Field(min_length=2, max_length=300)
+
+
 class ReplyDraft(BaseModel):
     reply_text: str
 
@@ -132,6 +143,8 @@ class ReviewOut(BaseModel):
     replied_at: datetime | None
     spam_reasons: list[str] | None
     hidden: bool
+    status: str | None
+    status_note: str | None
     analysis: AnalysisOut | None
     aspects: list[AspectOut]
 

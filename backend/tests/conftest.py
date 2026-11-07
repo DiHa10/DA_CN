@@ -5,7 +5,10 @@ import pytest
 
 # mặc định SQLite tạm; đặt TEST_DATABASE_URL để chạy trên Postgres (DB riêng, mỗi test bị xóa sạch)
 os.environ["DATABASE_URL"] = os.getenv("TEST_DATABASE_URL") or "sqlite:///" + os.path.join(tempfile.mkdtemp(), "test.db")
-os.environ["NLP_BACKEND"] = "lexicon"  # test API cần kết quả xác định; PhoBERT có test riêng
+os.environ["NLP_BACKEND"] = "lexicon"
+# máy đã cấu hình Gmail thì test không được gửi thư thật: bỏ SMTP để email ghi ra outbox (test tự đổi OUTBOX sang thư mục tạm)
+for key in ("SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "SMTP_FROM"):
+    os.environ.pop(key, None)  # test API cần kết quả xác định; PhoBERT có test riêng
 
 from fastapi.testclient import TestClient  # noqa: E402
 

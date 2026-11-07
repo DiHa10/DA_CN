@@ -55,6 +55,11 @@ export const ROLE_LABEL: Record<string, string> = {
   staff: "Nhân viên",
 };
 
+export const STATUS_LABEL: Record<string, string> = {
+  doing: "Đang xử lý",
+  done: "Đã xử lý",
+};
+
 export const SPAM_LABEL: Record<string, string> = {
   duplicate: "Trùng lặp",
   burst: "Gửi dồn dập",

@@ -40,6 +40,8 @@ export type Review = {
   replied_at: string | null;
   spam_reasons: string[] | null;
   hidden: boolean;
+  status: "doing" | "done" | null; // null = lời chê chưa xử lý
+  status_note: string | null;
   analysis: { sentiment: Sentiment; confidence: number } | null;
   aspects: { aspect: string; sentiment: Sentiment; corrected: boolean }[];
 };
@@ -61,6 +63,22 @@ export type Summary = {
   trend: ({ week_start: string; rated: number; avg_rating: number | null } & Counts)[];
   aspects: AspectRow[];
   complaints: { phrase: string; count: number }[];
+  open_complaints: number;
+  // chỉ góp ý qua QR: cells[khung giờ][thứ 0 = thứ Hai]
+  by_time: { total: number; slots: string[]; cells: { total: number; negative: number }[][] };
+};
+
+type Side = { mentions: number; negative: number };
+export type Action = {
+  id: number;
+  day: string;
+  aspect: string | null; // null = tổng thể
+  note: string;
+  before: Side;
+  after: Side;
+  after_days: number;
+  enough: boolean;
+  verdict: "better" | "worse" | "same" | null;
 };
 
 export type Insight = {

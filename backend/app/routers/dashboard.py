@@ -10,11 +10,34 @@ from ..models import Review, Store, counted
 from ..security import staff_store
 from ..services import anomaly
 from ..services.nlp import complaint_phrases
-from ..timeutil import as_utc, vn_date, vn_day_start
+from ..timeutil import VN, as_utc, vn_date, vn_day_start
 
 router = APIRouter(prefix="/stores/{store_id}/dashboard", tags=["dashboard"])
 
 SENTIMENTS = ("positive", "neutral", "negative")
+# khung giờ trong ngày (giờ VN) cho bảng "khách chê vào lúc nào"; giờ ngoài các khung là Khuya
+SLOTS = [("Sáng", 6, 11), ("Trưa", 11, 14), ("Chiều", 14, 18), ("Tối", 18, 22), ("Khuya", 22, 6)]
+
+
+def is_complaint(r: Review) -> bool:
+    """Có lời chê: review tiêu cực hoặc có khía cạnh bị chê (giống bộ lọc complaint=true ở trang Đánh giá)."""
+    return r.analysis.sentiment == "negative" or any(a.sentiment == "negative" for a in r.aspects)
+
+
+def by_time(analyzed: list[Review]) -> dict:
+    """Số góp ý và lời chê theo khung giờ × thứ. Chỉ góp ý qua QR: khách gửi ngay tại quán nên giờ gửi ~ giờ ở quán;
+    review Google Maps nhập vào chỉ có ngày hoặc là giờ đăng bài, không phải giờ đến quán."""
+    cells = [[{"total": 0, "negative": 0} for _ in range(7)] for _ in SLOTS]
+    qr = [r for r in analyzed if r.source == "qr"]
+    for r in qr:
+        t = as_utc(r.created_at).astimezone(VN)
+        slot = next((i for i, (_, a, b) in enumerate(SLOTS[:-1]) if a <= t.hour < b), len(SLOTS) - 1)
+        # khuya sau 0h vẫn là đêm của hôm trước (quán mở tới 1h sáng thứ Bảy là tối thứ Sáu)
+        day = (t.weekday() - (t.hour < 6)) % 7
+        cell = cells[slot][day]
+        cell["total"] += 1
+        cell["negative"] += is_complaint(r)
+    return {"total": len(qr), "slots": [f"{name} {a}–{b}h" for name, a, b in SLOTS], "cells": cells}
 
 
 @router.get("")
@@ -48,8 +71,7 @@ def summary(days: int | None = Query(None, ge=1, le=3650), store: Store = Depend
     def row(counter):
         return {s: counter[s] for s in SENTIMENTS}
 
-    complaints = [r.content for r in sorted(analyzed, key=lambda r: r.created_at, reverse=True)
-                  if r.analysis.sentiment == "negative" or any(a.sentiment == "negative" for a in r.aspects)]
+    complaints = [r.content for r in sorted(analyzed, key=lambda r: r.created_at, reverse=True) if is_complaint(r)]
     # shortcut: tách từ ~3ms/review nên chỉ tìm cụm trong 200 review chê gần nhất; cần cả lịch sử thì tính sẵn khi phân tích.
     # Số hiển thị đếm lại đúng như trang Đánh giá lọc (?q=cụm&complaint=true): review có lời chê chứa cụm đó, bấm vào ra đúng số ấy
     lowered = [c.lower() for c in complaints]
@@ -70,6 +92,8 @@ def summary(days: int | None = Query(None, ge=1, le=3650), store: Store = Depend
                   for w, c in sorted(trend.items())],
         "aspects": sorted(aspect_rows, key=lambda x: x["total"], reverse=True),
         "complaints": phrases,
+        "open_complaints": sum(1 for r in analyzed if r.status != "done" and is_complaint(r)),  # lời chê chưa xử lý xong
+        "by_time": by_time(analyzed),
     }
 
 

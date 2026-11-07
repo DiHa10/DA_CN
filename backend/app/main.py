@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .migrate import migrate
-from .routers import auth, dashboard, insights, public, reviews, stores
+from .routers import actions, auth, dashboard, insights, public, reviews, stores
 from .security import PRODUCTION
 from .services import nlp
 from .services import weekly_report
@@ -37,7 +37,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-for r in (auth, stores, reviews, public, dashboard, insights):
+for r in (auth, stores, reviews, public, dashboard, insights, actions):
     app.include_router(r.router)
 app.include_router(public.demo)
 
