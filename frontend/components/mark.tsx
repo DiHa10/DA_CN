@@ -12,8 +12,8 @@ export function Mark({ className = "size-5", color = "var(--accent)" }: { classN
 // mặc định trên nền sáng (ngoặc kép xanh, chữ đậm); dark: trên mảng tối của trang giới thiệu (vàng đồng, chữ kem)
 export function Wordmark({ dark = false }: { dark?: boolean }) {
   return (
-    <span className={`flex items-center gap-2 text-[20px] font-bold tracking-[-0.02em] ${dark ? "text-cream" : "text-ink"}`}>
-      <Mark className="size-6" color={dark ? "var(--gold)" : "var(--accent)"} />
+    <span className={`flex items-center gap-2 text-[17px] font-semibold ${dark ? "text-cream" : "text-ink"}`}>
+      <Mark className="size-5" color={dark ? "var(--gold)" : "var(--accent)"} />
       {PRODUCT_NAME}
     </span>
   );

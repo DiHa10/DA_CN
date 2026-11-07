@@ -1,33 +1,35 @@
 @import "tailwindcss";
 
-/* Giao diện sáng, thân thiện (11/2026): nền xám xanh rất nhạt, thẻ trắng bo tròn đổ bóng nhẹ, xanh dương tươi là màu nhấn
-   (nút chính, link, mục đang chọn). Xanh/đỏ khen-chê giữ nguyên vì là nghĩa của dữ liệu.
+/* Khung tông đá ấm + tờ trắng (11/2026, phong cách "framed sheet" đo từ màn hình sản phẩm thật).
+   Menu trái và thanh trên chung một nền đá ấm (giấy, gỗ của quán), không kẻ giữa; phần làm việc là tờ trắng
+   viền 1px, bo 16px, không bóng. Màu gần như chỉ nằm trên dữ liệu: xanh mòng két trầm cho đường chính của biểu đồ,
+   link và nút chọn; xanh/đỏ khen-chê là nghĩa của dữ liệu. Nút chính màu mực, mỗi màn hình một nút.
    Trang giới thiệu vẫn dùng các mảng tối (.on-dark: xanh đen + vàng đồng) để kể chuyện. */
 :root {
   --navy: #0f1a2e; /* chỉ còn ở các mảng tối của trang giới thiệu */
   --gold: #e3b04b; /* vàng đồng: chỉ trên nền tối; trên nền sáng dùng cho ngôi sao */
   --cream: #fcf9f0;
-  --blue: #1d4ed8;
+  --blue: #1b6c80;
 
-  --ground: #f5f7fb;
-  --surface: #ffffff;
-  --raised: #f1f4f9;
-  --active: #e6ecf5;
-  --border: #e2e8f0;
-  --rule: #edf1f6;
-  --control: #7c8799; /* viền ô nhập: 3,6:1 trên nền trắng */
-  --ink: #142033;
-  --muted: #5a6478; /* 6:1 trên nền trắng */
-  --accent: #2563eb; /* xanh dương tươi: 5,2:1 trên nền trắng */
-  --accent-strong: #1d4ed8;
-  --accent-soft: #eaf1ff; /* nền mục đang chọn */
-  --positive: #2f7a3e;
+  --ground: #f4f2ee; /* khung: đá ấm */
+  --surface: #ffffff; /* tờ trắng và thẻ */
+  --raised: #f6f5f2;
+  --active: #e9e7e2; /* mục menu đang chọn: một bậc tông, không màu */
+  --border: #e6e4df;
+  --rule: #efeeea;
+  --control: #8f9195; /* viền ô nhập, nút viền: 3,1:1 trên nền trắng (WCAG 1.4.11) */
+  --ink: #131416;
+  --muted: #5d5f60; /* 6,5:1 trên nền trắng */
+  --accent: #1b6c80; /* xanh mòng két trầm: 5,9:1 trên nền trắng */
+  --accent-strong: #145566;
+  --accent-soft: #e5f0f2;
+  --positive: #1e7b4f;
   --negative: #b3362b;
-  --negative-soft: #fdecea;
-  --warn: #9a4b00; /* chữ cảnh báo: 6,4:1 trên nền cam nhạt */
-  --warn-soft: #fff4e5;
+  --negative-soft: #ffedea;
+  --warn: #92400e;
+  --warn-soft: #fffbeb;
   --star: var(--gold);
-  --primary: var(--accent);
+  --primary: var(--ink);
   --sage: var(--border);
   --on-dark-muted: #aab4c8; /* chữ phụ trên nền tối: 9:1 */
 }
@@ -62,58 +64,58 @@
   --font-display: var(--font-ui), system-ui, sans-serif; /* trước là chữ có chân; giữ tên để các trang cũ không phải sửa */
 }
 
-/* bo tròn: nút, ô nhập, nhãn 8px; thẻ nội dung 16px */
+/* nút, ô nhập 6px; thẻ 8px; tờ trắng 16px */
 @theme {
   --radius-xs: 4px;
-  --radius-sm: 8px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 18px;
-  --radius-2xl: 20px;
-  --radius-3xl: 24px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 16px;
 }
 
 body {
   background: var(--ground);
   color: var(--ink);
-  font-size: 16px;
-  line-height: 24px;
+  font-size: 15px;
+  line-height: 22px;
 }
 
 @layer components {
   .num {
     font-variant-numeric: tabular-nums;
   }
-  /* số liệu lớn (chỉ số chính): chữ có chân, số thẳng hàng */
+  /* số liệu lớn (chỉ số chính): chữ thường đậm 400, số thẳng hàng; nhãn mới là chữ đậm */
   .figure {
-    @apply font-semibold tracking-[-0.02em];
+    @apply font-normal tracking-[-0.01em];
     font-variant-numeric: lining-nums tabular-nums;
   }
-  /* vùng nền tối: khung ứng dụng, trang đăng nhập, form QR của khách */
+  /* vùng nền tối: chỉ còn ở trang giới thiệu */
   .on-dark {
     @apply bg-navy text-cream;
   }
   .title {
-    @apply text-[28px] leading-[1.2] font-semibold tracking-[-0.02em] text-ink md:text-[32px];
+    @apply text-[22px] leading-7 font-semibold text-ink md:text-[24px] md:leading-8;
   }
   .heading {
-    @apply text-[17px] leading-6 font-semibold tracking-[-0.01em] text-ink;
+    @apply text-[16px] leading-6 font-semibold text-ink;
   }
-  /* thẻ nội dung: trắng, bo 16px, bóng rất nhẹ để nổi khỏi nền xám */
+  /* thẻ trong tờ trắng: viền 1px nhạt, bo 8px, không bóng */
   .panel {
-    @apply rounded-lg border border-border bg-surface shadow-[0_1px_2px_rgba(20,32,51,0.04),0_4px_12px_rgba(20,32,51,0.04)];
+    @apply rounded-lg border border-border bg-surface;
   }
   /* nút có chấm ở đầu: rê chuột thì chấm loang ra phủ kín nút, chữ đổi màu (xem .btn::before bên dưới).
      --dot: màu chấm và màu phủ; --dot-ink: màu chữ khi đã phủ */
   .btn {
-    --dot: var(--accent);
+    --dot: var(--ink);
     --dot-ink: #fff;
-    @apply relative isolate inline-flex h-11 cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-sm border border-control bg-surface pr-4 pl-7 text-[15px] font-semibold whitespace-nowrap text-ink transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply relative isolate inline-flex h-11 cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-sm border border-control bg-surface pr-3.5 pl-6 text-[14px] font-medium whitespace-nowrap text-ink transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-60 md:h-9;
   }
   .btn-primary {
     --dot: #fff;
-    --dot-ink: var(--accent);
-    @apply border-accent bg-accent text-white;
+    --dot-ink: var(--ink);
+    @apply border-ink bg-ink text-white;
   }
   .btn-gold {
     /* nút chính trên nền tối */
@@ -126,29 +128,29 @@ body {
     @apply pr-8;
   }
   .input {
-    @apply h-12 w-full rounded-sm border border-control bg-white px-3.5 text-[16px] text-ink placeholder:text-muted;
+    @apply h-11 w-full rounded-sm border border-control bg-white px-3 text-[15px] text-ink placeholder:text-muted;
   }
   .control {
-    @apply h-11 rounded-sm border border-control bg-white px-3 text-[15px] text-ink;
+    @apply h-11 rounded-sm border border-control bg-white px-2.5 text-[14px] text-ink md:h-9;
   }
   .label {
-    @apply mb-2 block text-[14px] font-semibold text-ink;
+    @apply mb-1.5 block text-[14px] font-medium text-ink;
   }
   /* lời khách: in nghiêng để tách khỏi chữ giao diện */
   .hand {
-    @apply text-[16px] leading-6 text-ink italic;
+    @apply text-[15px] leading-[22px] text-ink italic;
   }
   /* vạch xanh nhạt bên trái các khối chứa lời khách */
   .notebook {
-    border-left: 3px solid #c7d7fb;
+    border-left: 2px solid #b9d6dc;
   }
   /* link chữ trên điện thoại: nới vùng bấm lên 44px mà không đẩy bố cục */
   .tap {
     @apply -mx-3 -my-3.5 inline-block px-3 py-3.5 md:mx-0 md:my-0 md:px-0 md:py-0;
   }
-  /* nhãn nhỏ ("Ưu tiên", "Mới"): chữ trắng trên nền xanh, bo tròn */
+  /* nhãn nhỏ ("Ưu tiên", "Mới"): viên thuốc đỏ nhạt, vì chúng đều nói về lời chê */
   .sign {
-    @apply rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-white;
+    @apply rounded-full bg-negative-soft px-2 py-px text-xs font-medium text-[#831c1e];
   }
 }
 
@@ -273,7 +275,7 @@ body {
 /* gạch ngang chạy qua chữ khi ẩn review; background thay text-decoration để transition được,
    box-decoration-break: clone để chữ xuống dòng thì dòng nào cũng có gạch */
 .strike {
-  background: linear-gradient(currentColor, currentColor) no-repeat 0 58% / 0 1px;
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 58% / 0 1px; /* taste-skill-ignore: là một đường kẻ 1px, không phải chuyển màu */
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
   transition: background-size 0.35s var(--ease), color 0.35s ease;
@@ -309,7 +311,7 @@ body {
 }
 .skeleton {
   border-radius: 4px;
-  background: linear-gradient(90deg, var(--active) 25%, var(--raised) 50%, var(--active) 75%) 0 0 / 200% 100%;
+  background: linear-gradient(90deg, var(--active) 25%, var(--raised) 50%, var(--active) 75%) 0 0 / 200% 100%; /* taste-skill-ignore: vệt sáng của khung đang tải */
   animation: shimmer 1.4s linear infinite;
 }
 /* nút giữ để xóa: thanh đỏ chạy đầy trong --hold, thả sớm thì rút về nhanh */

@@ -9,9 +9,8 @@ import { actionNumbers, ActionsPanel, TimeHeatmap } from "./followup";
 import {
   ACCENT, ASPECT_LABEL, formatDate, formatNum, formatPct, SENTIMENT_COLOR, SENTIMENT_LABEL, SOURCE_LABEL,
 } from "@/lib/labels";
-import { AlertTriangle, CheckCircle2, MessageSquareWarning, QrCode } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 // Câu hỏi của màn hình: "Khách đang chê điều gì nhiều nhất?" — bảng khía cạnh là khối lớn nhất.
@@ -47,8 +46,10 @@ export default function DashboardPage() {
 
   // theo id: danh sách quán tải lại tạo object mới, không được tải lại cả trang Tổng quan
   const storeId = store?.id;
+  const latest = useRef(0); // đổi khoảng nhanh: bỏ kết quả của lần tải cũ về muộn, kẻo số 30 ngày đè lên "3 tháng"
   const load = useCallback(() => {
     if (!storeId) return;
+    const req = ++latest.current;
     setError("");
     // cùng mốc "từ ngày" với backend (ngày VN, tính cả hôm nay) để 3 lời chê khớp con số đếm
     const from = range === "all" ? "" : `&date_from=${new Date(Date.now() + 7 * 3600e3 - (Number(range) - 1) * 86400e3).toISOString().slice(0, 10)}`;
@@ -57,7 +58,10 @@ export default function DashboardPage() {
       api<Review[]>(`/stores/${storeId}/reviews?complaint=true&status=open&hidden=false&limit=3${from}`),
       api<Anomalies>(`/stores/${storeId}/dashboard/anomalies`),
       api<Action[]>(`/stores/${storeId}/actions`),
-    ]).then(([s, r, a, act]) => { setData(s); setRecent(r); setAnomalies(a); setActions(act); }, (e) => setError(e.message));
+    ]).then(([s, r, a, act]) => {
+      if (req !== latest.current) return;
+      setData(s); setRecent(r); setAnomalies(a); setActions(act);
+    }, (e) => req === latest.current && setError(e.message));
   }, [storeId, range]);
   useEffect(load, [load]);
   const rangeLabel = RANGES.find(([k]) => k === range)![1];
@@ -71,7 +75,6 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
-          <p className="text-[15px] text-muted">{greeting()}</p>
           <h1 className="title">Tổng quan</h1>
           <p className="mt-1 text-[15px] text-muted">
             {!data ? "Đang tải dữ liệu…"
@@ -80,11 +83,11 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div role="group" aria-label="Khoảng thời gian" className="flex rounded-sm border border-border bg-surface p-1">
+          <div role="group" aria-label="Khoảng thời gian" className="flex rounded-md bg-raised p-0.5 ring-1 ring-border">
             {RANGES.map(([k, label]) => (
               <button key={k} type="button" aria-pressed={range === k} onClick={() => pick(k)}
-                className={`h-10 cursor-pointer rounded-[6px] px-3.5 text-[14px] font-medium transition-colors duration-150 ${
-                  range === k ? "bg-accent text-white" : "text-muted hover:bg-raised hover:text-ink"}`}>
+                className={`h-10 cursor-pointer rounded-sm px-3 text-[13px] transition-colors duration-150 md:h-8 ${
+                  range === k ? "bg-surface font-medium text-ink ring-1 ring-border" : "text-muted hover:text-ink"}`}>
                 {label}
               </button>
             ))}
@@ -137,22 +140,18 @@ export default function DashboardPage() {
   );
 }
 
-function greeting() {
-  const h = (new Date().getUTCHours() + 7) % 24; // giờ Việt Nam
-  return h < 11 ? "Chào buổi sáng" : h < 13 ? "Chào buổi trưa" : h < 18 ? "Chào buổi chiều" : "Chào buổi tối";
-}
-
-// Việc cần làm: đặt trên cùng để chủ quán mở ra là biết nên làm gì trước, rồi mới tới số liệu
+// Cần làm: đặt trên cùng để chủ quán mở ra là biết nên làm gì trước, rồi mới tới số liệu.
+// Mỗi dòng: loại việc (nhãn chữ), một câu có số và mốc so sánh, một nút làm ngay.
 function TodoCard({ anomalies, data }: { anomalies: Anomalies; data: Summary }) {
-  const items: { key: string; icon: React.ReactNode; tone: string; text: React.ReactNode; href: string; action: string }[] = [];
+  const items: { key: string; kind: string; pill: string; text: React.ReactNode; href: string; action: string }[] = [];
   for (const a of anomalies.alerts) {
     items.push({
       key: `anomaly-${a.aspect ?? "all"}`,
-      icon: <AlertTriangle aria-hidden className="size-5" />,
-      tone: "bg-warn-soft text-warn",
+      kind: "Bất thường",
+      pill: "bg-warn-soft text-warn",
       text: <>
-        {a.aspect ? <><b className="font-semibold">{ASPECT_LABEL[a.aspect] ?? a.aspect}</b> bị chê bất thường</> : <b className="font-semibold">Lời chê tăng bất thường</b>}
-        {": "}{pct0(a.rate)} trong 7 ngày qua ({a.negative}/{a.mentions}), thường chỉ {pct0(a.baseline_rate)}.
+        {a.aspect ? <><b className="font-medium">{ASPECT_LABEL[a.aspect] ?? a.aspect}</b> bị chê</> : <b className="font-medium">Tỉ lệ tiêu cực</b>}
+        {" "}{pct0(a.rate)} trong 7 ngày qua ({a.negative}/{a.mentions}), 8 tuần trước chỉ {pct0(a.baseline_rate)}
       </>,
       href: `/reviews?sentiment=negative&date_from=${anomalies.since}${a.aspect ? `&aspect=${a.aspect}` : ""}`,
       action: "Xem đánh giá",
@@ -161,36 +160,34 @@ function TodoCard({ anomalies, data }: { anomalies: Anomalies; data: Summary }) 
   if (data.open_complaints > 0)
     items.push({
       key: "open",
-      icon: <MessageSquareWarning aria-hidden className="size-5" />,
-      tone: "bg-negative-soft text-negative",
-      text: <><b className="font-semibold">{data.open_complaints} lời chê chưa xử lý</b> trong khoảng đang xem. Gọi lại khách hoặc ghi chú đã làm gì.</>,
+      kind: "Lời chê",
+      pill: "bg-negative-soft text-[#831c1e]",
+      text: <><b className="font-medium">{data.open_complaints} lời chê chưa xử lý</b> trong khoảng đang xem</>,
       href: `/reviews?complaint=true&status=open&hidden=false${data.since ? `&date_from=${data.since}` : ""}`,
       action: "Xử lý",
     });
   if (data.by_time.total === 0)
     items.push({
       key: "qr",
-      icon: <QrCode aria-hidden className="size-5" />,
-      tone: "bg-accent-soft text-accent",
-      text: <><b className="font-semibold">Chưa có góp ý qua mã QR.</b> In mã QR đặt ở bàn để khách góp ý ngay tại quán.</>,
+      kind: "Gợi ý",
+      pill: "bg-active text-ink",
+      text: <>Chưa có góp ý qua mã QR: in mã đặt ở bàn để khách góp ý ngay tại quán</>,
       href: "/stores",
       action: "Lấy mã QR",
     });
 
   return (
-    <section aria-label="Việc cần làm" className="anim-drop panel px-5 py-4">
-      <h2 className="heading">Việc cần làm {items.length > 0 && <span className="num ml-1 rounded-full bg-raised px-2 py-0.5 text-[13px] text-muted">{items.length}</span>}</h2>
+    <section aria-label="Cần làm" className="panel">
+      <h2 className="heading px-4 pt-3 pb-1">Cần làm</h2>
       {items.length === 0 ? (
-        <p className="mt-2 flex items-center gap-2 text-[15px] text-muted">
-          <CheckCircle2 aria-hidden className="size-5 text-positive" /> Không có việc gấp. Mọi lời chê đã được xử lý.
-        </p>
+        <p className="px-4 pb-3 text-muted">Không có việc gấp: không có bất thường và mọi lời chê đã được xử lý.</p>
       ) : (
-        <ul className="mt-3 space-y-2">
+        <ul>
           {items.map((it) => (
-            <li key={it.key} className="flex flex-wrap items-center gap-3 rounded-sm border border-border px-3 py-2.5 sm:flex-nowrap">
-              <span className={`flex size-9 shrink-0 items-center justify-center rounded-full ${it.tone}`}>{it.icon}</span>
-              <p className="min-w-0 flex-1 text-[15px]">{it.text}</p>
-              <Link href={it.href} className="btn ml-auto h-10 shrink-0">{it.action}</Link>
+            <li key={it.key} className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-rule px-4 py-2.5 first:border-t-0 sm:flex-nowrap">
+              <span className={`w-[84px] shrink-0 rounded-full px-2 py-px text-center text-xs font-medium ${it.pill}`}>{it.kind}</span>
+              <p className="min-w-0 flex-1">{it.text}</p>
+              <Link href={it.href} className="btn ml-auto shrink-0">{it.action}</Link>
             </li>
           ))}
         </ul>
@@ -220,11 +217,11 @@ function Kpis({ data, rangeLabel }: { data: Summary; rangeLabel: string }) {
     },
   ];
   return (
-    <section aria-label="Chỉ số chính" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <section aria-label="Chỉ số chính" className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-4">
       {cells.map((c) => (
-        <div key={c.label} className="panel px-5 py-4">
+        <div key={c.label} className="bg-surface px-4 py-3.5">
           <p className="text-sm text-muted">{c.label}</p>
-          <p className="figure mt-1 text-[30px] leading-10">
+          <p className="figure mt-0.5 text-[28px] leading-9">
             {c.value}{c.unit && <span className="ml-0.5 text-sm text-muted">{c.unit}</span>}
           </p>
           <p className="text-xs text-muted">{c.note}</p>
@@ -310,11 +307,11 @@ function Trend({ data, actions }: { data: Summary; actions: Action[] }) {
   const avg = stars ? data.avg_rating : negAvg;
   // mốc tròn, mốc trên cùng cao hơn giá trị lớn nhất để đường không chạm mép
   const step = Math.max(negAvg, ...points.map((p) => p.rate)) > 40 ? 20 : 10;
-  const top = (Math.floor(Math.max(negAvg, ...points.map((p) => p.rate)) / step) + 1) * step;
+  const top = Math.min(100, (Math.floor(Math.max(negAvg, ...points.map((p) => p.rate)) / step) + 1) * step); // tỉ lệ không vượt 100%
   const ticks = stars ? [1, 2, 3, 4, 5] : Array.from({ length: top / step + 1 }, (_, i) => i * step);
-  const axis = { stroke: "transparent", tick: { fill: "#586179", fontSize: 12 } };
+  const axis = { stroke: "transparent", tick: { fill: "#5d5f60", fontSize: 12 } };
   const rated = points.filter((p) => p.star !== null);
-  const fmt = (v: number) => (stars ? `${formatNum(v, 2)}★` : `${formatNum(v)}%`);
+  const fmt = (v: number) => (stars ? `${formatNum(v, 2)} sao` : `${formatNum(v)}%`);
   const series = stars ? rated.map((p) => p.star!) : points.map((p) => p.rate);
   // mốc cải thiện: vạch dọc ở tuần chứa ngày áp dụng (tuần bắt đầu thứ Hai), số khớp khối "Việc quán đã thay đổi"
   const numbers = actionNumbers(actions);
@@ -335,10 +332,10 @@ function Trend({ data, actions }: { data: Summary; actions: Action[] }) {
             {marks.length > 0 && ". Vạch đậm có số: mốc quán thay đổi"}
           </p>
         </div>
-        <div role="group" aria-label="Chỉ số" className="flex rounded-sm border border-border p-1">
+        <div role="group" aria-label="Chỉ số" className="flex rounded-md bg-raised p-0.5 ring-1 ring-border">
           {([["neg", "Tỉ lệ tiêu cực"], ["star", "Điểm sao"]] as const).map(([k, label]) => (
             <button key={k} type="button" aria-pressed={metric === k} onClick={() => setMetric(k)}
-              className={`h-9 cursor-pointer rounded-[6px] px-3 text-[13px] font-medium ${metric === k ? "bg-accent text-white" : "text-muted hover:bg-raised hover:text-ink"}`}>
+              className={`h-9 cursor-pointer rounded-sm px-2.5 text-[13px] md:h-7 ${metric === k ? "bg-surface font-medium text-ink ring-1 ring-border" : "text-muted hover:text-ink"}`}>
               {label}
             </button>
           ))}
@@ -350,20 +347,20 @@ function Trend({ data, actions }: { data: Summary; actions: Action[] }) {
         : "Chưa có dữ liệu theo tuần"}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={points} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-            <CartesianGrid stroke="#e4e8ef" vertical={false} />
+            <CartesianGrid stroke="#efeeea" vertical={false} />
             <XAxis dataKey="label" {...axis} tickLine={false} minTickGap={24} />
             <YAxis domain={stars ? [1, 5] : [0, top]} ticks={ticks} unit={stars ? "" : "%"} {...axis} tickLine={false} />
-            {avg !== null && <ReferenceLine y={avg} stroke="#586179" strokeDasharray="4 4" />}
+            {avg !== null && <ReferenceLine y={avg} stroke="#8f9195" strokeDasharray="4 4" />}
             {marks.map((m) => (
               <ReferenceLine key={m.id} x={m.x} stroke={ACCENT} strokeWidth={1.5}
                 label={{ value: m.n, position: "insideTopRight", fill: ACCENT, fontSize: 12, fontWeight: 600 }} />
             ))}
             <Tooltip
               cursor={{ stroke: "#858c99" }}
-              contentStyle={{ border: "1px solid #e2e8f0", borderRadius: 10, background: "#ffffff", fontSize: 13, padding: "8px 12px", boxShadow: "0 4px 12px rgba(20,32,51,0.08)" }}
+              contentStyle={{ border: "1px solid #e6e4df", borderRadius: 6, background: "#ffffff", fontSize: 13, padding: "6px 10px" }}
               labelFormatter={(_, p) => (p[0] ? `Tuần từ ${formatDate(p[0].payload.week)}` : "")}
               formatter={(_, __, p) => stars
-                ? [`${formatNum(p.payload.star, 2)}★ (${p.payload.rated} lượt chấm)`, "Điểm sao"]
+                ? [`${formatNum(p.payload.star, 2)} sao (${p.payload.rated} lượt chấm)`, "Điểm sao"]
                 : [`${formatNum(p.payload.rate)}% (${p.payload.neg}/${p.payload.n} đánh giá)`, "Tiêu cực"]}
             />
             {/* tuần không ai chấm sao thì nối qua, không kéo đường về 0 */}

@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { Be_Vietnam_Pro } from "next/font/google";
+import { IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 
-// giao diện sáng, thân thiện: một font không chân bo tròn, vẽ riêng cho tiếng Việt; chữ nghiêng cho lời khách
-const ui = Be_Vietnam_Pro({
+// IBM Plex Sans: chữ giao diện rõ, số đẹp trong bảng; có bộ dấu tiếng Việt; chữ nghiêng cho lời khách
+const ui = IBM_Plex_Sans({
   variable: "--font-ui",
   subsets: ["latin", "vietnamese"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600"],
   style: ["normal", "italic"],
 });
 

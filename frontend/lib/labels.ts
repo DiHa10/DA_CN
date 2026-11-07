@@ -22,7 +22,7 @@ export const SENTIMENT_PILL: Record<Sentiment, string> = {
   negative: "bg-[#f6e0da] text-[#7a1f17]",
 };
 
-export const ACCENT = "#2563eb";
+export const ACCENT = "#1b6c80";
 
 export const ASPECT_LABEL: Record<string, string> = {
   food: "Món ăn",
