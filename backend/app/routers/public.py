@@ -10,7 +10,7 @@ from ..ratelimit import SlidingWindow
 from ..schemas import DemoIn, PublicStore, ReviewIn
 from ..services import spam
 from ..services.analysis import analyze_reviews
-from ..services.nlp import analyze_batch
+from ..services.nlp import about_store, analyze_batch
 
 router = APIRouter(prefix="/public/stores", tags=["public"])
 
@@ -71,4 +71,5 @@ def analyze_demo(body: DemoIn, request: Request):
     demo_per_ip.hit(_client_ip(request))
     demo_all.hit("all")
     result = analyze_batch([body.text])[0]
-    return {"sentiment": result["sentiment"], "aspects": result["aspects"]}
+    # about_store: giao diện báo "câu này có vẻ không nói về quán" thay vì một kết quả vô nghĩa
+    return {"sentiment": result["sentiment"], "aspects": result["aspects"], "about_store": bool(result["aspects"]) or about_store(body.text)}

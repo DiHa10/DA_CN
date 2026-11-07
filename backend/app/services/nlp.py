@@ -7,6 +7,7 @@ Hai nhánh, cùng chữ ký analyze_batch:
 
 import os
 import threading
+import unicodedata
 from collections import Counter
 import re
 from pathlib import Path
@@ -49,9 +50,72 @@ def _pattern(words):
 _POS_RE, _NEG_RE = _pattern(POSITIVE), _pattern(NEGATIVE)
 _ASPECT_RE = {a: _pattern(kw) for a, kw in ASPECTS.items()}
 
+# Bộ lọc chủ đề cho PhoBERT. Model chỉ học review nhà hàng (VLSP 2018) nên coi câu nào cũng đang nói về quán:
+# "Điện thoại này pin yếu quá" thành Món ăn: tiêu cực. Khía cạnh model đoán mà câu không có từ nào thuộc khía cạnh đó
+# thì bỏ. Danh sách rộng hơn ASPECTS (từ điển cũ) vì chỉ cần dấu hiệu "đang nói về chuyện này", không cần chắc chắn.
+# Đo ảnh hưởng: ml/eval_topic.py -> ml/reports/topic_results.md.
+# shortcut: câu ngoài lề có từ trùng (ví dụ "giá điện thoại đắt") vẫn lọt; cần chặt hơn thì thêm bộ phân loại chủ đề.
+CUES = {
+    "food": ASPECTS["food"] + [
+        "ăn", "đồ ăn", "món", "vị", "ngon", "dở", "mặn", "nhạt", "ngọt", "cay", "chua", "đắng", "béo", "ngấy", "giòn", "dai",
+        "mềm", "thơm", "tươi", "ôi", "thiu", "tanh", "nguội", "nóng hổi", "đậm", "khẩu phần", "phần ăn", "suất", "topping",
+        "sốt", "nước lèo", "nước chấm", "thịt", "cá", "gà", "bò", "heo", "vịt", "tôm", "cua", "mực", "ốc", "hải sản", "rau",
+        "trứng", "bánh", "cháo", "miến", "hủ tiếu", "bánh mì", "xôi", "chè", "kem", "nướng", "chiên", "xào", "hấp", "luộc",
+        "pizza", "burger", "sushi", "dimsum", "buffet", "menu", "thực đơn", "đầu bếp", "no", "đói", "nêm nếm",
+        "vừa miệng", "lạ miệng", "nấu", "chế biến", "ướp", "nhân", "ghiền", "thèm",
+    ],
+    "drink": ASPECTS["drink"] + [
+        "nước", "uống", "cf", "coffee", "trà", "sữa", "bia", "rượu", "soda", "matcha", "latte", "cacao", "đá", "ly", "cốc",
+        "chai", "trân châu", "pha", "bạc xỉu", "nâu", "espresso", "smoothie",
+    ],
+    "service": ASPECTS["service"] + [
+        "nhân viên", "nv", "bạn nhân viên", "chủ", "quản lý", "thu ngân", "bảo vệ", "order", "gọi món", "mang ra", "lâu",
+        "nhanh", "thái độ", "nhiệt tình", "thân thiện", "niềm nở", "lễ phép", "chu đáo", "tư vấn", "tính tiền", "thanh toán",
+        "ship", "shipper", "giao hàng", "giao", "đặt bàn", "dọn", "khách", "phục vụ", "bưng", "hỗ trợ", "xin lỗi",
+        "bán hàng", "người bán", "cô bán", "lịch sự", "giữ xe", "dịch vụ", "nvien", "staff",
+    ],
+    "price": ASPECTS["price"] + [
+        "giá", "tiền", "đắt", "rẻ", "mắc", "bill", "hóa đơn", "nghìn", "ngàn", "đồng", "vnđ", "đáng", "khuyến mãi", "giảm giá",
+        "voucher", "phụ thu", "combo", "chát", "chặt chém", "túi tiền", "bình dân", "sinh viên", "free", "miễn phí",
+    ],
+    "ambience": ASPECTS["ambience"] + [
+        "không gian", "sạch", "dơ", "yên tĩnh", "ồn ào", "ngồi", "bàn", "ghế", "điều hòa", "quạt", "nóng", "mát", "trang trí",
+        "ánh sáng", "đèn", "thoáng", "chật", "rộng", "chill", "sống ảo", "chụp ảnh", "wc", "nhà vệ sinh", "toilet", "mùi",
+        "khói", "thuốc lá", "muỗi", "ruồi", "gián", "đông", "vắng", "ấm cúng", "phòng", "tầng", "sân", "ban công", "wifi",
+        "đẹp", "xinh", "nhỏ", "lụp xụp", "phong cách", "nhã nhặn", "ế", "trẻ em", "chỗ chơi", "vỉa hè", "tinh tế",
+        "không khí", "học tập", "học bài", "làm việc", "tập trung", "deadline", "thoải mái", "riêng tư", "ngủ",
+    ],
+    "location": ASPECTS["location"] + [
+        "vị trí", "địa chỉ", "để xe", "đỗ xe", "bãi xe", "xe", "hẻm", "ngõ", "đường", "mặt tiền", "gần", "xa", "trung tâm",
+        "chợ", "góc", "ngã tư", "map", "bản đồ", "tìm", "chỗ đậu", "quận", "phường", "nằm", "cầu", "ngã", "đ/c", "khu",
+        "đi ngang", "khuất", "gần nhà",
+    ],
+}
+# từ cho biết câu nói về quán dù không nhắc khía cạnh nào ("quán này được", "lần sau quay lại")
+GENERAL = ["quán", "nhà hàng", "tiệm", "chỗ này", "quay lại", "ghé", "lần sau", "trải nghiệm", "review"]
+_CUE_RE = {a: _pattern(set(kw)) for a, kw in CUES.items()}
+_GENERAL_RE = _pattern(GENERAL)
+
+
+_MONEY_RE = re.compile(r"\d+\s*(?:k|đ|vnd|vnđ|nghìn|ngàn|tr|triệu)(?!\w)")  # "25k", "279 k", "40 nghìn"
+
+
+def on_topic_aspects(text: str, aspects: dict) -> dict:
+    """Chỉ giữ khía cạnh mà câu có ít nhất một từ thuộc khía cạnh đó (giá: cả số tiền như "25k")."""
+    norm = normalize(text)
+    return {a: v for a, v in aspects.items() if _CUE_RE[a].search(norm) or (a == "price" and _MONEY_RE.search(norm))}
+
+
+def about_store(text: str) -> bool:
+    """Câu có nói về quán không: có từ chung ("quán", "quay lại") hoặc từ của bộ từ điển hẹp ASPECTS.
+    Không dùng CUES: các từ rộng như "đẹp", "nhanh" làm "Hôm nay trời đẹp quá" thành chuyện của quán.
+    Kết quả phân tích còn khía cạnh sau lọc thì cũng là nói về quán (xem routers/public.py)."""
+    norm = normalize(text)
+    return bool(_GENERAL_RE.search(norm)) or any(r.search(norm) for r in _ASPECT_RE.values())
+
 
 def normalize(text: str) -> str:
-    text = text.lower()
+    text = unicodedata.normalize("NFC", text).lower()  # dấu tổ hợp (NFD, hay gặp khi chép từ web) phải khớp từ điển
     text = re.sub(r"https?://\S+", " ", text)
     text = re.sub(r"(\w)\1{2,}", r"\1", text)  # "ngonnnn" -> "ngon"
     return " ".join(TEENCODE.get(w, w) for w in re.findall(r"\w+|[^\w\s]", text))
@@ -178,6 +242,7 @@ def analyze_batch(texts: list[str], ratings: list[int | None] | None = None) -> 
         return results
     results = []
     for text, rating, aspects in zip(texts, ratings, predictor.predict(texts)):
+        aspects = on_topic_aspects(text, aspects)
         # VLSP không có nhãn tổng thể: suy ra từ khía cạnh; tổng bằng 0, ví dụ "Không còn gì để nói, luôn là
         # điểm dừng chân lí tưởng" (không nhắc khía cạnh nào), thì xét số sao
         probs = [p for _, p in aspects.values()]

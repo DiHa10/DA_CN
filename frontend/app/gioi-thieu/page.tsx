@@ -37,6 +37,25 @@ const cellColor = (neg: number, neu: number, c: number) =>
 
 const PARTICLES = 12; // hạt trên mỗi đường ở cảnh thu thập
 
+// cảnh PhoBERT: số thật của model đang chạy (ml/models/absa) với câu DEMO, xác suất 4 nhãn cho mỗi khía cạnh
+// theo thứ tự [không nhắc, khen, trung lập, chê]
+const TOKENS = ["<s>", "phở", "ngon", "nhưng", "phục_vụ", "chậm", "</s>"];
+const HEADS: [string, number[]][] = [
+  ["food", [0.082, 0.697, 0.192, 0.029]],
+  ["drink", [0.913, 0.027, 0.018, 0.042]],
+  ["service", [0.007, 0.005, 0.011, 0.976]],
+  ["price", [0.751, 0.127, 0.081, 0.042]],
+  ["ambience", [0.816, 0.087, 0.022, 0.075]],
+  ["location", [0.854, 0.043, 0.071, 0.032]],
+];
+const HEAD_LABEL = ["Không nhắc", "Khen", "Trung lập", "Chê"];
+// thanh xếp chồng theo thứ tự đọc chê | trung lập | khen | không nhắc, như bảng khía cạnh trong ứng dụng
+const HEAD_ORDER = [3, 2, 1, 0];
+const HEAD_COLOR = ["#ebeae6", "#2f7a3e", "#c9cbcd", "#b3362b"];
+// 32 ô đại diện cho 768 số của vector [CLS]; độ đậm cố định để server và trình duyệt vẽ giống nhau
+const CLS_CELLS = Array.from({ length: 32 }, (_, i) => 0.15 + 0.85 * Math.abs(Math.sin(i * 2.3 + 0.7)));
+const CUE_HIT: Record<string, string> = { food: "“phở”, “ngon”", service: "“phục vụ”, “chậm”" };
+
 const SOURCES = [
   ["Google Maps", "Tải đánh giá của quán về thành file rồi nhập vào. Review đã có thì tự bỏ qua.", "map-pin"],
   ["Mã QR tại bàn", "Khách quét mã, chấm sao, viết vài dòng. Không cần cài app.", "mobile"],
@@ -55,7 +74,7 @@ const STEPS = [
   { who: "Nhân viên", what: "Mở Đánh giá, lọc lời chê chưa xử lý, trả lời từng khách. Bấm “Gợi ý bằng AI” nếu cần câu mở đầu." },
 ];
 
-const CHAPTERS = [["collect", "Thu thập"], ["analyze", "Phân tích"], ["summary", "Tổng hợp"], ["alert", "Cảnh báo"], ["spam", "Spam"], ["roles", "Vai trò"], ["start", "Bắt đầu"]];
+const CHAPTERS = [["collect", "Thu thập"], ["model", "PhoBERT"], ["analyze", "Thử"], ["summary", "Tổng hợp"], ["alert", "Cảnh báo"], ["spam", "Spam"], ["roles", "Vai trò"], ["start", "Bắt đầu"]];
 
 const LIGHT_GOOD = "#7fd6a0";
 const LIGHT_BAD = "#ff9b8f";
@@ -102,6 +121,30 @@ function collectScene(root: Element): Anim[] {
   return [tl];
 }
 
+function modelScene(root: Element): Anim[] {
+  const q = (s: string): Els => [...root.querySelectorAll(s)];
+  const draw = (s: string) => createDrawable(q(s));
+  return [createTimeline({ defaults: { ease: "outQuad" } })
+    .set(q("[data-seg]"), { scaleX: 0 }, 0) // thanh xác suất nằm trong hàng đang ẩn; co về 0 trước khi hàng hiện
+    .add(q("[data-stage-box]"), { opacity: [0, 1], y: [16, 0], delay: stagger(90), duration: 450 })
+    .add(q("[data-token]"), { opacity: [0, 1], x: [-14, 0], delay: stagger(70), duration: 350 }, "-=200")
+    .add(q("[data-token=phục_vụ]"), { scale: [1, 1.12, 1], duration: 450 })
+    .add(q("[data-link=a]"), { opacity: [0, 1], duration: 1 })
+    .add(draw("[data-link=a] path"), { draw: ["0 0", "0 1"], duration: 400 }, "<")
+    // 12 lớp sáng lên lần lượt từ dưới lên: câu đi qua từng lớp Transformer
+    .add(q("[data-layer]"), { opacity: [0.12, 1, 0.7], delay: stagger(70, { from: "last" }), duration: 520 })
+    .add(q("[data-cls-box]"), { opacity: [0, 1], duration: 150 }, "-=300")
+    .add(q("[data-cls]"), { scale: [0, 1], delay: stagger(18), duration: 300 }, "<")
+    .add(q("[data-link=b]"), { opacity: [0, 1], duration: 1 })
+    .add(draw("[data-link=b] path"), { draw: ["0 0", "0 1"], duration: 400 }, "<")
+    .add(q("[data-head-row]"), { opacity: [0, 1], duration: 250, delay: stagger(60) })
+    .add(q("[data-seg]"), { scaleX: [0, 1], delay: stagger(25), duration: 500, ease: "outExpo" }, "-=200")
+    .add(q("[data-head-pick]"), { opacity: [0, 1], x: [-8, 0], delay: stagger(60), duration: 300 }, "-=300")
+    .add(q("[data-link=c]"), { opacity: [0, 1], duration: 1 })
+    .add(draw("[data-link=c] path"), { draw: ["0 0", "0 1"], duration: 400 }, "<")
+    .add(q("[data-result]"), { opacity: [0, 1], scale: [0.8, 1], delay: stagger(120), duration: 450, ease: "outBack(1.6)" })];
+}
+
 function summaryScene(root: Element): Anim[] {
   const q = (s: string): Els => [...root.querySelectorAll(s)];
   const rnd = (a: number, b: number) => () => utils.random(a, b);
@@ -145,7 +188,7 @@ function spamScene(root: Element): Anim[] {
   return [tl];
 }
 
-const SCENES: Record<string, (root: Element) => Anim[]> = { collect: collectScene, summary: summaryScene, alert: alertScene, spam: spamScene };
+const SCENES: Record<string, (root: Element) => Anim[]> = { collect: collectScene, model: modelScene, summary: summaryScene, alert: alertScene, spam: spamScene };
 
 export default function IntroPage() {
   const root = useRef<HTMLDivElement>(null);
@@ -255,14 +298,20 @@ export default function IntroPage() {
         </div>
       </Section>
 
-      {/* 3. Phân tích: thử trực tiếp với PhoBERT */}
-      <Section id="analyze" step="Bước 2" tone="surface" title="Máy đọc từng câu, tách theo 6 khía cạnh"
-        intro="Một câu khách viết thường nói nhiều chuyện cùng lúc. Hệ thống xem từng chuyện: món ăn, phục vụ, giá… được khen hay bị chê. Gõ thử một câu:">
+      {/* 3. Bên trong máy đọc: PhoBERT tách từ, 12 lớp, 6 đầu phân loại */}
+      <Section id="model" step="Bước 2" tone="surface" title="Máy đọc từng câu, tách theo 6 khía cạnh"
+        intro="Một câu khách viết thường nói nhiều chuyện cùng lúc. Mô hình PhoBERT đọc cả câu một lần, rồi 6 đầu phân loại trả lời cùng lúc: món ăn, đồ uống, phục vụ, giá, không gian, vị trí được khen, chê hay không được nhắc tới.">
+        <ModelDiagram />
+      </Section>
+
+      {/* 4. Thử trực tiếp với PhoBERT */}
+      <Section id="analyze" title="Thử với câu của bạn"
+        intro="Câu bạn gõ được chạy qua đúng mô hình ở trên, không lưu lại. Câu không nói về quán (thời tiết, điện thoại…) thì hệ thống không gán khía cạnh nào.">
         <div data-reveal><LiveTry /></div>
       </Section>
 
       {/* 4. Tổng hợp */}
-      <Section id="summary" step="Bước 3" title="Hàng trăm góp ý thành một bảng"
+      <Section id="summary" step="Bước 3" tone="surface" title="Hàng trăm góp ý thành một bảng"
         intro="Mỗi ô là một lượt khách nhắc tới: đỏ là chê, xám là trung lập, xanh là khen. Khía cạnh bị chê nhiều nhất nằm trên cùng.">
         <div data-scene="summary" className="rounded-lg border border-border bg-surface p-5 md:p-7">
           <div data-tallies data-hide className="mb-6 flex gap-8 md:gap-12">
@@ -289,7 +338,7 @@ export default function IntroPage() {
       </Section>
 
       {/* 5. Cảnh báo + gợi ý AI */}
-      <Section id="alert" step="Bước 4" tone="surface" title="Chê tăng vọt thì báo ngay, AI gợi ý việc nên làm"
+      <Section id="alert" step="Bước 4" title="Chê tăng vọt thì báo ngay, AI gợi ý việc nên làm"
         intro="Hệ thống so tỉ lệ chê 7 ngày qua với 8 tuần trước. Tăng rõ rệt, không phải ngẫu nhiên, thì báo ở đầu trang Tổng quan và trong email sáng thứ Hai.">
         <div data-scene="alert" className="grid items-center gap-6 lg:grid-cols-2 lg:gap-10">
           <svg data-trend data-hide viewBox="0 0 400 170" role="img" aria-label="Tỉ lệ chê phục vụ theo tuần: ổn định khoảng 18%, tuần này vọt lên 64%" className="w-full overflow-visible">
@@ -316,7 +365,7 @@ export default function IntroPage() {
       </Section>
 
       {/* 6. Spam */}
-      <Section id="spam" step="Bước 5" title="Review đáng ngờ được gắn cờ"
+      <Section id="spam" step="Bước 5" tone="surface" title="Review đáng ngờ được gắn cờ"
         intro="Một nội dung đăng lại nhiều lần, một máy gửi dồn dập qua mã QR, nội dung vô nghĩa, số sao ngược với lời viết: hệ thống gắn cờ “Nghi spam”. Quản lý xem lại rồi quyết định có ẩn khỏi thống kê hay không, máy không tự xóa lời của khách.">
         <div data-scene="spam">
           <div data-spam-stage className="relative mx-auto h-44 max-w-md">
@@ -335,7 +384,7 @@ export default function IntroPage() {
       </Section>
 
       {/* 7. Vai trò */}
-      <Section id="roles" tone="surface" title="Ai làm được gì" intro="Mỗi người được thêm vào quán với một vai trò. Ai cũng xem được số liệu, việc thay đổi dữ liệu thì tùy vai trò.">
+      <Section id="roles" title="Ai làm được gì" intro="Mỗi người được thêm vào quán với một vai trò. Ai cũng xem được số liệu, việc thay đổi dữ liệu thì tùy vai trò.">
         <div className="grid gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-3">
           {ROLES.map((r, i) => (
             <div key={r.name} data-reveal style={{ "--d": `${i * 90}ms` } as React.CSSProperties} className="bg-surface p-5">
@@ -350,7 +399,7 @@ export default function IntroPage() {
       </Section>
 
       {/* 8. Bắt đầu */}
-      <Section id="start" title="Bắt đầu trong 5 phút" intro="Việc đầu tiên cho từng vai trò.">
+      <Section id="start" tone="surface" title="Bắt đầu trong 5 phút" intro="Việc đầu tiên cho từng vai trò.">
         <ol className="grid gap-4 md:grid-cols-3">
           {STEPS.map((s, i) => (
             <li key={s.who} data-reveal style={{ "--d": `${i * 90}ms` } as React.CSSProperties} className="rounded-lg border border-border bg-surface p-5">
@@ -373,6 +422,96 @@ export default function IntroPage() {
       </footer>
 
       <Ruler />
+    </div>
+  );
+}
+
+// Sơ đồ PhoBERT 4 chặng. Mọi phần tử có data-hide: ẩn sẵn, cảnh modelScene đưa ra theo thứ tự.
+function ModelDiagram() {
+  const stage = "rounded-lg border border-border bg-surface p-4";
+  const title = (n: number, t: string, sub: string) => (
+    <div className="mb-3">
+      <p className="text-[14px] font-semibold"><span className="num text-accent">{n}.</span> {t}</p>
+      <p className="text-[13px] text-muted">{sub}</p>
+    </div>
+  );
+  const link = (id: string) => (
+    <svg data-link={id} data-hide viewBox="0 0 40 24" aria-hidden className="mx-auto h-6 w-10 rotate-90 text-control lg:mx-0 lg:mt-24 lg:rotate-0" fill="none">
+      <path d="M2 12 H34 M28 6 L36 12 L28 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+  return (
+    <div data-scene="model" className="grid items-start gap-3 lg:grid-cols-[1fr_40px_1.05fr_40px_1.45fr_40px_1fr] lg:gap-2">
+      <div data-stage-box data-hide className={stage}>
+        {title(1, "Tách từ", "Bộ tách từ tiếng Việt ghép từ hai tiếng")}
+        <p className="hand text-muted">“{DEMO.text}”</p>
+        <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Các từ sau khi tách">
+          {TOKENS.map((t) => (
+            <li key={t} data-token={t} data-hide
+              className={`num rounded-sm border px-2 py-0.5 text-[13px] ${t.startsWith("<") ? "border-dashed border-control text-muted" : t.includes("_") ? "border-accent text-accent" : "border-border"}`}>
+              {t}
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-[13px] text-muted">&lt;s&gt; và &lt;/s&gt; đánh dấu đầu, cuối câu.</p>
+      </div>
+      {link("a")}
+      <div data-stage-box data-hide className={stage}>
+        {title(2, "PhoBERT", "12 lớp Transformer, 135 triệu tham số, học trước trên 20 GB chữ tiếng Việt")}
+        <div className="flex flex-col-reverse gap-[3px]" role="img" aria-label="12 lớp Transformer">
+          {Array.from({ length: 12 }, (_, i) => (
+            <span key={i} data-layer data-hide className="h-[9px] rounded-[2px] bg-accent" />
+          ))}
+        </div>
+        <p className="mt-3 text-[13px] text-muted">Ra một vector [CLS] gồm 768 số tóm tắt cả câu:</p>
+        <div data-cls-box data-hide className="mt-1.5 grid grid-cols-16 gap-[2px]" role="img" aria-label="Vector 768 chiều, vẽ rút gọn 32 ô">
+          {CLS_CELLS.map((o, i) => <span key={i} data-cls className="aspect-square rounded-[1px] bg-ink" style={{ opacity: o }} />)}
+        </div>
+      </div>
+      {link("b")}
+      <div data-stage-box data-hide className={stage}>
+        {title(3, "6 đầu phân loại", "Mỗi khía cạnh chia 100% cho 4 nhãn, nhãn lớn nhất thắng")}
+        <ul className="space-y-2">
+          {HEADS.map(([a, probs]) => {
+            const pick = probs.indexOf(Math.max(...probs));
+            return (
+              <li key={a} data-head-row data-hide className="grid grid-cols-[68px_1fr_auto] items-center gap-2 text-[13px]">
+                <span className="font-medium">{ASPECT_LABEL[a]}</span>
+                <span className="flex h-2.5 gap-px overflow-hidden rounded-[2px]" role="img"
+                  aria-label={HEAD_ORDER.map((k) => `${HEAD_LABEL[k]} ${Math.round(probs[k] * 100)}%`).join(", ")}>
+                  {HEAD_ORDER.map((k) => (
+                    <span key={k} data-seg className="origin-left" style={{ flexGrow: probs[k], background: HEAD_COLOR[k] }} />
+                  ))}
+                </span>
+                <span data-head-pick data-hide className={`num text-right whitespace-nowrap ${pick === 0 ? "text-muted" : "font-medium"}`}>
+                  {HEAD_LABEL[pick]} {Math.round(probs[pick] * 100)}%
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+        <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-muted">
+          {HEAD_ORDER.map((k) => (
+            <li key={k} className="flex items-center gap-1"><span aria-hidden className="h-2 w-3 rounded-[1px]" style={{ background: HEAD_COLOR[k] }} />{HEAD_LABEL[k]}</li>
+          ))}
+        </ul>
+      </div>
+      {link("c")}
+      <div data-stage-box data-hide className={stage}>
+        {title(4, "Lọc chủ đề, ra kết quả", "Giữ khía cạnh khi câu có từ thuộc khía cạnh đó")}
+        <ul className="space-y-2">
+          {HEADS.filter(([, p]) => p.indexOf(Math.max(...p)) !== 0).map(([a, p]) => {
+            const s = (["none", "positive", "neutral", "negative"] as const)[p.indexOf(Math.max(...p))] as Sentiment;
+            return (
+              <li key={a} data-result data-hide>
+                <span className={`rounded-full px-2.5 py-0.5 text-[14px] font-medium ${SENTIMENT_PILL[s]}`}>{ASPECT_LABEL[a]}: {SENTIMENT_LABEL[s].toLowerCase()}</span>
+                <p className="mt-1 text-[12px] text-muted">có {CUE_HIT[a]}</p>
+              </li>
+            );
+          })}
+        </ul>
+        <p data-result data-hide className="mt-3 text-[13px] text-muted">4 khía cạnh còn lại: không được nhắc tới.</p>
+      </div>
     </div>
   );
 }
@@ -455,7 +594,7 @@ function AspectChips({ aspects, live, dark, hide }: { aspects: Record<string, st
 // Thử trực tiếp: gõ câu của mình, PhoBERT trên máy chủ tách khía cạnh thật (không lưu câu)
 function LiveTry() {
   const [text, setText] = useState("");
-  const [result, setResult] = useState<{ sentiment: Sentiment; aspects: Record<string, string>; text: string } | null>(null);
+  const [result, setResult] = useState<{ sentiment: Sentiment; aspects: Record<string, string>; about_store: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const out = useRef<HTMLDivElement>(null);
@@ -465,7 +604,7 @@ function LiveTry() {
     setBusy(true);
     setError("");
     try {
-      const r = await api<{ sentiment: Sentiment; aspects: Record<string, string> }>("/public/analyze", json("POST", { text: t }));
+      const r = await api<{ sentiment: Sentiment; aspects: Record<string, string>; about_store: boolean }>("/public/analyze", json("POST", { text: t }));
       setResult({ ...r, text: t });
     } catch (e) {
       setError((e as Error).message);
@@ -507,9 +646,9 @@ function LiveTry() {
             <p data-live-overall className="mt-3">
               Cả câu: <span className={`rounded-full px-2.5 py-0.5 text-[14px] font-medium ${SENTIMENT_PILL[result.sentiment]}`}>{SENTIMENT_LABEL[result.sentiment]}</span>
             </p>
-            {Object.keys(result.aspects).length === 0
-              ? <p className="mt-3 text-muted">Câu này không nhắc tới khía cạnh nào trong 6 khía cạnh.</p>
-              : <AspectChips aspects={result.aspects} live />}
+            {Object.keys(result.aspects).length > 0 ? <AspectChips aspects={result.aspects} live />
+              : result.about_store ? <p className="mt-3 text-muted">Câu này không nhắc tới khía cạnh nào trong 6 khía cạnh (món ăn, đồ uống, phục vụ, giá, không gian, vị trí).</p>
+              : <p className="mt-3 rounded-sm bg-warn-soft px-3 py-2 text-warn">Câu này có vẻ không nói về quán ăn, nên hệ thống không gán khía cạnh nào. Cảm xúc cả câu ở trên chỉ để tham khảo.</p>}
           </div>
         )}
       </div>
