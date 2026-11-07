@@ -9,6 +9,7 @@ import { actionNumbers, ActionsPanel, TimeHeatmap } from "./followup";
 import {
   ACCENT, ASPECT_LABEL, formatDate, formatNum, formatPct, SENTIMENT_COLOR, SENTIMENT_LABEL, SOURCE_LABEL,
 } from "@/lib/labels";
+import { AlertTriangle, CheckCircle2, MessageSquareWarning, QrCode } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -70,6 +71,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div>
+          <p className="text-[15px] text-muted">{greeting()}</p>
           <h1 className="title">Tổng quan</h1>
           <p className="mt-1 text-[15px] text-muted">
             {!data ? "Đang tải dữ liệu…"
@@ -78,11 +80,11 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div role="group" aria-label="Khoảng thời gian" className="flex rounded-sm border border-control p-0.5">
+          <div role="group" aria-label="Khoảng thời gian" className="flex rounded-sm border border-border bg-surface p-1">
             {RANGES.map(([k, label]) => (
               <button key={k} type="button" aria-pressed={range === k} onClick={() => pick(k)}
-                className={`h-11 cursor-pointer rounded-sm px-3 text-[13px] font-medium transition-colors duration-150 md:h-8 ${
-                  range === k ? "bg-navy text-cream" : "text-muted hover:text-ink"}`}>
+                className={`h-10 cursor-pointer rounded-[6px] px-3.5 text-[14px] font-medium transition-colors duration-150 ${
+                  range === k ? "bg-accent text-white" : "text-muted hover:bg-raised hover:text-ink"}`}>
                 {label}
               </button>
             ))}
@@ -98,7 +100,7 @@ export default function DashboardPage() {
         </p>
       )}
 
-      {anomalies && anomalies.alerts.length > 0 && <AnomalyStrip data={anomalies} />}
+      {data && anomalies && <TodoCard anomalies={anomalies} data={data} />}
 
       {!data && !error && (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_384px]">
@@ -135,27 +137,64 @@ export default function DashboardPage() {
   );
 }
 
-// Tỉ lệ chê 7 ngày qua tăng vọt so với 8 tuần trước: đặt trên cùng vì cần xử lý ngay, không đợi báo cáo tuần
-function AnomalyStrip({ data }: { data: Anomalies }) {
+function greeting() {
+  const h = (new Date().getUTCHours() + 7) % 24; // giờ Việt Nam
+  return h < 11 ? "Chào buổi sáng" : h < 13 ? "Chào buổi trưa" : h < 18 ? "Chào buổi chiều" : "Chào buổi tối";
+}
+
+// Việc cần làm: đặt trên cùng để chủ quán mở ra là biết nên làm gì trước, rồi mới tới số liệu
+function TodoCard({ anomalies, data }: { anomalies: Anomalies; data: Summary }) {
+  const items: { key: string; icon: React.ReactNode; tone: string; text: React.ReactNode; href: string; action: string }[] = [];
+  for (const a of anomalies.alerts) {
+    items.push({
+      key: `anomaly-${a.aspect ?? "all"}`,
+      icon: <AlertTriangle aria-hidden className="size-5" />,
+      tone: "bg-warn-soft text-warn",
+      text: <>
+        {a.aspect ? <><b className="font-semibold">{ASPECT_LABEL[a.aspect] ?? a.aspect}</b> bị chê bất thường</> : <b className="font-semibold">Lời chê tăng bất thường</b>}
+        {": "}{pct0(a.rate)} trong 7 ngày qua ({a.negative}/{a.mentions}), thường chỉ {pct0(a.baseline_rate)}.
+      </>,
+      href: `/reviews?sentiment=negative&date_from=${anomalies.since}${a.aspect ? `&aspect=${a.aspect}` : ""}`,
+      action: "Xem đánh giá",
+    });
+  }
+  if (data.open_complaints > 0)
+    items.push({
+      key: "open",
+      icon: <MessageSquareWarning aria-hidden className="size-5" />,
+      tone: "bg-negative-soft text-negative",
+      text: <><b className="font-semibold">{data.open_complaints} lời chê chưa xử lý</b> trong khoảng đang xem. Gọi lại khách hoặc ghi chú đã làm gì.</>,
+      href: `/reviews?complaint=true&status=open&hidden=false${data.since ? `&date_from=${data.since}` : ""}`,
+      action: "Xử lý",
+    });
+  if (data.by_time.total === 0)
+    items.push({
+      key: "qr",
+      icon: <QrCode aria-hidden className="size-5" />,
+      tone: "bg-accent-soft text-accent",
+      text: <><b className="font-semibold">Chưa có góp ý qua mã QR.</b> In mã QR đặt ở bàn để khách góp ý ngay tại quán.</>,
+      href: "/stores",
+      action: "Lấy mã QR",
+    });
+
   return (
-    <section aria-label="Cảnh báo bất thường" className="anim-drop on-dark rounded-lg px-5 py-4">
-      <h2 className="font-display text-[19px] leading-6 font-medium text-gold">Bất thường trong 7 ngày qua</h2>
-      <ul className="mt-1 space-y-1 text-sm">
-        {data.alerts.map((a) => {
-          const href = `/reviews?sentiment=negative&date_from=${data.since}${a.aspect ? `&aspect=${a.aspect}` : ""}`;
-          return (
-            <li key={a.aspect ?? "all"} className="flex flex-wrap items-center gap-x-3">
-              <span>
-                {a.aspect
-                  ? <><b className="font-medium">{ASPECT_LABEL[a.aspect] ?? a.aspect}</b> bị chê {pct0(a.rate)} lượt nhắc</>
-                  : <><b className="font-medium">{pct0(a.rate)} đánh giá</b> là tiêu cực</>}
-                {" "}({a.negative}/{a.mentions}), thường chỉ {pct0(a.baseline_rate)}.
-              </span>
-              <Link href={href} className="tap font-medium text-gold underline underline-offset-2">Xem đánh giá</Link>
+    <section aria-label="Việc cần làm" className="anim-drop panel px-5 py-4">
+      <h2 className="heading">Việc cần làm {items.length > 0 && <span className="num ml-1 rounded-full bg-raised px-2 py-0.5 text-[13px] text-muted">{items.length}</span>}</h2>
+      {items.length === 0 ? (
+        <p className="mt-2 flex items-center gap-2 text-[15px] text-muted">
+          <CheckCircle2 aria-hidden className="size-5 text-positive" /> Không có việc gấp. Mọi lời chê đã được xử lý.
+        </p>
+      ) : (
+        <ul className="mt-3 space-y-2">
+          {items.map((it) => (
+            <li key={it.key} className="flex flex-wrap items-center gap-3 rounded-sm border border-border px-3 py-2.5 sm:flex-nowrap">
+              <span className={`flex size-9 shrink-0 items-center justify-center rounded-full ${it.tone}`}>{it.icon}</span>
+              <p className="min-w-0 flex-1 text-[15px]">{it.text}</p>
+              <Link href={it.href} className="btn ml-auto h-10 shrink-0">{it.action}</Link>
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
@@ -181,11 +220,11 @@ function Kpis({ data, rangeLabel }: { data: Summary; rangeLabel: string }) {
     },
   ];
   return (
-    <section aria-label="Chỉ số chính" className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-4">
+    <section aria-label="Chỉ số chính" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {cells.map((c) => (
-        <div key={c.label} className="bg-surface px-5 py-4">
+        <div key={c.label} className="panel px-5 py-4">
           <p className="text-sm text-muted">{c.label}</p>
-          <p className="figure mt-1 text-[34px] leading-10">
+          <p className="figure mt-1 text-[30px] leading-10">
             {c.value}{c.unit && <span className="ml-0.5 text-sm text-muted">{c.unit}</span>}
           </p>
           <p className="text-xs text-muted">{c.note}</p>
@@ -296,10 +335,10 @@ function Trend({ data, actions }: { data: Summary; actions: Action[] }) {
             {marks.length > 0 && ". Vạch đậm có số: mốc quán thay đổi"}
           </p>
         </div>
-        <div role="group" aria-label="Chỉ số" className="flex rounded-sm border border-control p-0.5 text-xs">
+        <div role="group" aria-label="Chỉ số" className="flex rounded-sm border border-border p-1">
           {([["neg", "Tỉ lệ tiêu cực"], ["star", "Điểm sao"]] as const).map(([k, label]) => (
             <button key={k} type="button" aria-pressed={metric === k} onClick={() => setMetric(k)}
-              className={`h-11 cursor-pointer rounded-sm px-2.5 font-medium md:h-7 ${metric === k ? "bg-navy text-cream" : "text-muted hover:text-ink"}`}>
+              className={`h-9 cursor-pointer rounded-[6px] px-3 text-[13px] font-medium ${metric === k ? "bg-accent text-white" : "text-muted hover:bg-raised hover:text-ink"}`}>
               {label}
             </button>
           ))}
@@ -316,12 +355,12 @@ function Trend({ data, actions }: { data: Summary; actions: Action[] }) {
             <YAxis domain={stars ? [1, 5] : [0, top]} ticks={ticks} unit={stars ? "" : "%"} {...axis} tickLine={false} />
             {avg !== null && <ReferenceLine y={avg} stroke="#586179" strokeDasharray="4 4" />}
             {marks.map((m) => (
-              <ReferenceLine key={m.id} x={m.x} stroke="#0f1a2e" strokeWidth={1.5}
-                label={{ value: m.n, position: "insideTopRight", fill: "#0f1a2e", fontSize: 12, fontWeight: 600 }} />
+              <ReferenceLine key={m.id} x={m.x} stroke={ACCENT} strokeWidth={1.5}
+                label={{ value: m.n, position: "insideTopRight", fill: ACCENT, fontSize: 12, fontWeight: 600 }} />
             ))}
             <Tooltip
               cursor={{ stroke: "#858c99" }}
-              contentStyle={{ border: "1px solid #d9dee8", borderRadius: 6, background: "#fcf9f0", fontSize: 13, padding: "6px 10px" }}
+              contentStyle={{ border: "1px solid #e2e8f0", borderRadius: 10, background: "#ffffff", fontSize: 13, padding: "8px 12px", boxShadow: "0 4px 12px rgba(20,32,51,0.08)" }}
               labelFormatter={(_, p) => (p[0] ? `Tuần từ ${formatDate(p[0].payload.week)}` : "")}
               formatter={(_, __, p) => stars
                 ? [`${formatNum(p.payload.star, 2)}★ (${p.payload.rated} lượt chấm)`, "Điểm sao"]

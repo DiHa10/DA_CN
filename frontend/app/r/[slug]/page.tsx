@@ -44,7 +44,7 @@ export default function PublicReviewPage() {
   }
 
   return (
-    <main className="on-dark min-h-screen">
+    <main className="min-h-screen bg-ground">
       <div className="mx-auto max-w-md px-5 py-10 sm:py-16">
         {notFound ? (
           <p>Không tìm thấy cửa hàng. Bạn kiểm tra lại mã QR giúp quán nhé.</p>
@@ -53,13 +53,13 @@ export default function PublicReviewPage() {
         ) : done ? (
           <div>
             <Icon3D name="heart" size={112} className="pop mb-4" />
-            <h1 style={{ animationDelay: "300ms" }} className="anim-rise font-display text-[38px] leading-[1.05] font-normal tracking-[-0.015em] text-gold">Cảm ơn bạn đã góp ý</h1>
+            <h1 style={{ animationDelay: "300ms" }} className="anim-rise text-[32px] leading-[1.15] font-bold tracking-[-0.02em] text-ink">Cảm ơn bạn đã góp ý</h1>
             <p style={{ animationDelay: "380ms" }} className="anim-rise mt-2 text-muted">{storeName} đã nhận được góp ý của bạn và sẽ đọc từng ý một.</p>
           </div>
         ) : (
           <form ref={form} onSubmit={submit}>
-            <p className="text-[13px] font-medium tracking-[0.08em] text-muted uppercase">Góp ý cho</p>
-            <h1 className="mt-2 font-display text-[38px] leading-[1.05] font-normal tracking-[-0.015em] text-gold sm:text-[52px]">{storeName}</h1>
+            <p className="text-[15px] text-muted">Góp ý cho</p>
+            <h1 className="mt-1 text-[32px] leading-[1.15] font-bold tracking-[-0.02em] text-ink sm:text-[40px]">{storeName}</h1>
 
             <fieldset className="mt-10">
               <legend className="label">Bạn thấy bữa ăn hôm nay thế nào?</legend>
@@ -68,7 +68,7 @@ export default function PublicReviewPage() {
                   <label key={n} onMouseEnter={() => setHover(n)} className="-ml-1.5 cursor-pointer rounded-md p-1.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent">
                     <input type="radio" name="rating" value={n} className="sr-only" checked={rating === n} onChange={() => setRating(n)} />
                     <Star aria-hidden strokeWidth={1.5}
-                      className={`size-9 transition-colors duration-150 ${n <= (hover || rating) ? "fill-star text-star" : "text-on-dark-muted"} ${n === rating ? "pop" : ""}`} />
+                      className={`size-9 transition-colors duration-150 ${n <= (hover || rating) ? "fill-star text-star" : "text-control"} ${n === rating ? "pop" : ""}`} />
                     <span className="sr-only">{n} sao, {RATING_WORD[n]}</span>
                   </label>
                 ))}
@@ -87,8 +87,8 @@ export default function PublicReviewPage() {
               <input id="author" name="author" maxLength={200} autoComplete="name" className="input text-base" />
             </div>
 
-            {error && <p role="alert" className="mt-4 text-sm text-gold">{error}</p>}
-            <button disabled={sending} className="btn btn-gold btn-go mt-8 h-12 w-full text-[14px]">{sending ? "Đang gửi…" : "Gửi góp ý"}</button>
+            {error && <p role="alert" className="mt-4 text-sm text-negative">{error}</p>}
+            <button disabled={sending} className="btn btn-primary btn-go mt-8 h-12 w-full text-[16px]">{sending ? "Đang gửi…" : "Gửi góp ý"}</button>
           </form>
         )}
       </div>

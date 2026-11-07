@@ -77,7 +77,7 @@ export function InsightsPanel({ storeId, canRegenerate, days }: { storeId: numbe
           // nút thật (không phải link chữ): chủ quán dễ bỏ qua tính năng AI nếu nó chỉ là chữ nhỏ
           <button className="btn btn-primary disabled:cursor-wait" onClick={regenerate} disabled={busy}
             title={`AI đọc lại đánh giá tiêu cực ${windowText(days)} và viết gợi ý mới`}>
-            <Sparkles aria-hidden className="size-4 text-gold" />
+            <Sparkles aria-hidden className="size-4" />
             {busy ? <Busy text="AI đang đọc" /> : insight ? "Cập nhật gợi ý AI" : "Tạo gợi ý AI"}
           </button>
         )}

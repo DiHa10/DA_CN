@@ -35,20 +35,19 @@ export default function LoginPage() {
 
   const isLogin = mode === "login";
   return (
-    <main className="on-dark flex min-h-screen flex-col px-5 py-6 md:px-12">
+    <main className="flex min-h-screen flex-col bg-ground px-5 py-6 md:px-12">
       <Link href="/gioi-thieu" aria-label="Quán Nghe: cách hoạt động" className="w-fit"><Wordmark /></Link>
       <div className="mx-auto my-auto grid w-full max-w-5xl items-center gap-10 py-10 md:grid-cols-[1fr_400px] md:gap-16">
       <div>
-        {/* chữ lớn vàng đồng trên nền tối, như biển hiệu sáng đèn */}
-        <p className="font-display text-[52px] leading-[1.0] font-normal tracking-[-0.02em] text-gold md:text-[84px]">
+        <p className="text-[48px] leading-[1.05] font-bold tracking-[-0.03em] text-ink md:text-[72px]">
           <span className="line-mask"><span>Khách</span></span>
-          <span className="line-mask"><span style={{ animationDelay: "120ms" }}>nói gì?</span></span>
+          <span className="line-mask"><span style={{ animationDelay: "120ms" }} className="text-accent">nói gì?</span></span>
         </p>
-        <p style={{ animationDelay: "350ms" }} className="anim-rise mt-5 max-w-md text-[17px] leading-[1.45] tracking-[0.02em] text-cream md:text-[19px]">
+        <p style={{ animationDelay: "350ms" }} className="anim-rise mt-5 max-w-md text-[17px] leading-[1.55] text-muted md:text-[19px]">
           Đọc mọi đánh giá từ Google Maps và mã QR tại quán, biết ngay món nào được khen và điều gì cần sửa.
         </p>
       </div>
-      <div ref={panel} style={{ animationDelay: "450ms" }} className="anim-rise on-light w-full rounded-lg bg-surface p-6 text-ink sm:p-8">
+      <div ref={panel} style={{ animationDelay: "450ms" }} className="anim-rise panel w-full p-6 sm:p-8">
         <h1 className="title">{isLogin ? "Đăng nhập" : "Tạo tài khoản"}</h1>
         <p className="mt-1 mb-6 text-sm text-muted">
           {isLogin ? "Xem khách đang khen và chê điều gì ở quán của bạn." : "Dành cho chủ quán. Bạn sẽ tạo cửa hàng đầu tiên ngay sau bước này."}

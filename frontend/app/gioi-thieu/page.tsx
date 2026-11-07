@@ -173,7 +173,7 @@ export default function IntroPage() {
   return (
     <div ref={root} className="overflow-x-clip">
       <header className="on-dark sticky top-0 z-20 flex h-14 items-center justify-between px-5 md:px-10">
-        <Link href="/gioi-thieu"><Wordmark /></Link>
+        <Link href="/gioi-thieu"><Wordmark dark /></Link>
         <Link href="/dashboard" className="btn btn-gold btn-go">Vào ứng dụng</Link>
       </header>
 

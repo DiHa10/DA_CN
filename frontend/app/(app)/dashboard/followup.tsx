@@ -70,7 +70,7 @@ export function ActionsPanel({ storeId, actions, canEdit, onChange }: {
             const [label, color] = a.verdict ? VERDICT[a.verdict] : ["", ""];
             return (
               <li key={a.id} className="grid grid-cols-[28px_minmax(0,1fr)] gap-x-3 border-t border-rule px-5 py-3 first:border-t-0">
-                <span className="num flex size-6 items-center justify-center rounded-sm bg-navy text-xs font-semibold text-cream">{numbers.get(a.id)}</span>
+                <span className="num flex size-6 items-center justify-center rounded-full bg-accent text-xs font-semibold text-white">{numbers.get(a.id)}</span>
                 <div className="min-w-0">
                   <p className="font-medium">{a.note}</p>
                   <p className="text-xs text-muted">
