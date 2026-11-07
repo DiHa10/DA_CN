@@ -11,8 +11,8 @@ export function Mark({ className = "size-5" }: { className?: string }) {
 
 export function Wordmark() {
   return (
-    // luôn nằm trên nền tối: ngoặc kép vàng đồng, chữ kem in hoa giãn rộng như biển hiệu
-    <span className="flex items-center gap-2.5 text-[17px] font-medium tracking-[0.14em] text-cream uppercase">
+    // luôn nằm trên nền tối: ngoặc kép vàng đồng, tên viết bằng chữ có chân như tên tờ báo
+    <span className="flex items-center gap-2.5 font-display text-[22px] font-medium tracking-[-0.01em] text-cream">
       <Mark />
       {PRODUCT_NAME}
     </span>

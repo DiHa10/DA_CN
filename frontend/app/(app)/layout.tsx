@@ -70,7 +70,7 @@ function Sidebar() {
       {/* quán đang xem và quyền của mình ở quán đó: các nút bị ẩn theo vai trò, người dùng cần biết vì sao */}
       {store && (
         <div className="mt-2 rounded-sm border border-[#22324f] px-3 py-2.5">
-          <p className="truncate text-sm font-medium text-cream" title={store.name}>{store.name}</p>
+          <p className="truncate font-display text-[16px] font-medium text-cream" title={store.name}>{store.name}</p>
           <p className="text-xs text-on-dark-muted">Vai trò: {ROLE_LABEL[store.role] ?? store.role}</p>
         </div>
       )}
@@ -138,11 +138,11 @@ function WeekStats({ storeId }: { storeId: number }) {
       <p className="text-[11px] font-semibold tracking-[0.08em] text-on-dark-muted uppercase">7 ngày qua</p>
       <div className="mt-2 grid grid-cols-2 gap-2">
         <Link href={`/reviews?${from}`} className="group">
-          <span className="num block text-[22px] leading-7 text-cream group-hover:text-gold">{data.total}</span>
+          <span className="figure block text-[26px] leading-8 text-cream group-hover:text-gold">{data.total}</span>
           <span className="text-xs text-on-dark-muted">đánh giá</span>
         </Link>
         <Link href={`/reviews?sentiment=negative&${from}`} className="group">
-          <span className={`num block text-[22px] leading-7 group-hover:text-gold ${data.sentiment.negative ? "text-gold" : "text-cream"}`}>
+          <span className={`figure block text-[26px] leading-8 group-hover:text-gold ${data.sentiment.negative ? "text-gold" : "text-cream"}`}>
             {data.sentiment.negative}
           </span>
           <span className="text-xs text-on-dark-muted">tiêu cực</span>

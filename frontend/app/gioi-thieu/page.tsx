@@ -184,7 +184,7 @@ export default function IntroPage() {
             <path fill="none" stroke="var(--gold)" strokeWidth="0.8" d="M2 11.5C2 7.4 4.3 4.6 8 3.5l.8 1.6C6.6 6 5.5 7.6 5.4 9.6H8.5V16H2v-4.5Zm9.5 0c0-4.1 2.3-6.9 6-8l.8 1.6c-2.2.9-3.3 2.5-3.4 4.5H18V16h-6.5v-4.5Z" />
           </svg>
           <p className="text-[13px] font-semibold tracking-[0.1em] text-on-dark-muted uppercase">Cách Quán Nghe hoạt động</p>
-          <h1 data-hero-title className="mt-4 max-w-4xl text-[44px] leading-[1.05] font-normal tracking-[0.04em] text-gold md:text-[84px]">
+          <h1 data-hero-title className="mt-4 max-w-4xl font-display text-[48px] leading-[1.02] font-normal tracking-[-0.02em] text-gold md:text-[92px]">
             Mỗi lời khách nói đều được nghe
           </h1>
           <p data-hero-sub className="mt-6 max-w-xl text-[17px] leading-[1.5] md:text-[19px]">
@@ -226,7 +226,7 @@ export default function IntroPage() {
       <Section id="analyze" icon="chat-bubble" step="2" title="Máy đọc từng câu, tách theo 6 khía cạnh" dark pin={motion}
         intro="Một câu khách viết thường nói nhiều chuyện cùng lúc. Hệ thống xem từng chuyện: món ăn, phục vụ, giá… được khen hay bị chê."
         after={<LiveTry />}>
-        <p className="text-[34px] leading-snug tracking-[0.02em] md:text-[58px]">
+        <p className="font-display text-[36px] leading-snug tracking-[-0.01em] italic md:text-[60px]">
           “{DEMO.text.split(" ").map((w, i) => (
             <span key={i} data-word={w} className={`inline-block ${w === DEMO.good ? "text-[#7fd6a0]" : w === DEMO.bad ? "text-[#ff9b8f]" : ""}`}>
               {w}&nbsp;
@@ -243,7 +243,7 @@ export default function IntroPage() {
           {[["Đánh giá", 300], ["Khen", 174], ["Chê", 101]].map(([l, v]) => (
             <div key={l}>
               <p className="text-sm text-muted">{l}</p>
-              <p data-tally className="num text-[30px] leading-9 md:text-[40px] md:leading-[48px]">{v}</p>
+              <p data-tally className="figure text-[34px] leading-9 md:text-[48px] md:leading-[52px]">{v}</p>
             </div>
           ))}
         </div>
@@ -311,7 +311,7 @@ export default function IntroPage() {
         <div className="grid gap-4 [perspective:900px] md:grid-cols-3">
           {ROLES.map((r) => (
             <div key={r.name} data-rise className="rounded-lg border border-[#22324f] p-5">
-              <h3 className="text-[22px] font-medium tracking-[0.04em] text-gold">{r.name}</h3>
+              <h3 className="font-display text-[24px] font-medium tracking-[-0.01em] text-gold">{r.name}</h3>
               <ul className="mt-3 list-disc space-y-1.5 pl-5">
                 {r.can.map((c) => <li key={c}>{c}</li>)}
               </ul>
@@ -403,7 +403,7 @@ function Section({ id, step, title, intro, icon, dark, pin, after, children }: {
         <p className={`num text-[13px] font-semibold tracking-[0.1em] uppercase ${dark ? "text-gold" : "text-blue"}`}>{step.padStart(2, "0")}</p>
         {icon && <Icon3D name={icon} size={112} className="float -mb-6 size-14 md:-mb-10 md:size-28" />}
       </div>
-      <h2 className={`mt-2 max-w-3xl text-[28px] leading-[1.15] font-medium tracking-[0.03em] md:text-[44px] ${dark ? "text-cream" : "text-blue"}`}>{title}</h2>
+      <h2 className={`mt-2 max-w-3xl font-display text-[32px] leading-[1.1] font-medium tracking-[-0.015em] md:text-[50px] ${dark ? "text-cream" : "text-ink"}`}>{title}</h2>
       <p className={`mt-3 mb-6 max-w-2xl text-[15px] leading-[1.5] md:mt-4 md:mb-10 md:text-[17px] ${dark ? "text-on-dark-muted" : "text-muted"}`}>{intro}</p>
     </>
   );

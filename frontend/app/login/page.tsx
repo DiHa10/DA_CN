@@ -40,7 +40,7 @@ export default function LoginPage() {
       <div className="mx-auto my-auto grid w-full max-w-5xl items-center gap-10 py-10 md:grid-cols-[1fr_400px] md:gap-16">
       <div>
         {/* chữ lớn vàng đồng trên nền tối, như biển hiệu sáng đèn */}
-        <p className="text-[44px] leading-[1.02] font-normal tracking-[0.06em] text-gold uppercase md:text-[68px]">
+        <p className="font-display text-[52px] leading-[1.0] font-normal tracking-[-0.02em] text-gold md:text-[84px]">
           <span className="line-mask"><span>Khách</span></span>
           <span className="line-mask"><span style={{ animationDelay: "120ms" }}>nói gì?</span></span>
         </p>

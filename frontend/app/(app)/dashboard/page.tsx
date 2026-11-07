@@ -139,7 +139,7 @@ export default function DashboardPage() {
 function AnomalyStrip({ data }: { data: Anomalies }) {
   return (
     <section aria-label="Cảnh báo bất thường" className="anim-drop on-dark rounded-lg px-5 py-4">
-      <h2 className="text-[13px] font-semibold tracking-[0.08em] text-gold uppercase">Bất thường trong 7 ngày qua</h2>
+      <h2 className="font-display text-[19px] leading-6 font-medium text-gold">Bất thường trong 7 ngày qua</h2>
       <ul className="mt-1 space-y-1 text-sm">
         {data.alerts.map((a) => {
           const href = `/reviews?sentiment=negative&date_from=${data.since}${a.aspect ? `&aspect=${a.aspect}` : ""}`;
@@ -185,7 +185,7 @@ function Kpis({ data, rangeLabel }: { data: Summary; rangeLabel: string }) {
       {cells.map((c) => (
         <div key={c.label} className="bg-surface px-5 py-4">
           <p className="text-sm text-muted">{c.label}</p>
-          <p className="num mt-1 text-[28px] leading-9">
+          <p className="figure mt-1 text-[34px] leading-10">
             {c.value}{c.unit && <span className="ml-0.5 text-sm text-muted">{c.unit}</span>}
           </p>
           <p className="text-xs text-muted">{c.note}</p>

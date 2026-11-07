@@ -3,7 +3,9 @@
 /* Hướng "Limón" với màu chủ đạo xanh đen: khung xanh đen, vùng nội dung kem giấy, chữ xanh mực,
    vàng đồng là màu nhấn duy nhất và chỉ đặt trên nền tối (trên nền kem chỉ đạt 1,9:1, không đọc được).
    Phẳng: không bóng, không chuyển màu, bo góc nhẹ. Chữ in hoa giãn rộng cho nhãn, nút, tên sản phẩm.
-   Xanh/đỏ khen-chê giữ lại vì là nghĩa của dữ liệu, chỉnh về tông trầm cho hợp bảng màu. */
+   Xanh/đỏ khen-chê giữ lại vì là nghĩa của dữ liệu, chỉnh về tông trầm cho hợp bảng màu.
+   Lớp Editorial (11/2026): tiêu đề, số liệu lớn và lời khách dùng chữ có chân Newsreader như trang báo;
+   tiêu đề viết thường thay vì in hoa giãn rộng; nút chữ thường. Khung tối (menu) giữ chữ in hoa nhỏ như đầu báo. */
 :root {
   --navy: #0f1a2e; /* xanh đen: khung, nút chính trên nền kem */
   --blue: #1c3a6e; /* xanh mực: tiêu đề, link */
@@ -50,6 +52,7 @@
   --color-sage: var(--sage);
   --color-on-dark-muted: var(--on-dark-muted);
   --font-sans: var(--font-ui), system-ui, sans-serif;
+  --font-display: var(--font-serif), Georgia, serif;
 }
 
 /* bo góc nhẹ: nút, ô nhập, nhãn 4px; khối nội dung 8px */
@@ -75,16 +78,21 @@ body {
   .num {
     font-variant-numeric: tabular-nums;
   }
+  /* số liệu lớn (chỉ số chính): chữ có chân, số thẳng hàng */
+  .figure {
+    @apply font-display font-medium tracking-[-0.01em];
+    font-variant-numeric: lining-nums tabular-nums;
+  }
   /* vùng nền tối: khung ứng dụng, trang đăng nhập, form QR của khách */
   .on-dark {
     @apply bg-navy text-cream;
   }
   .title {
-    @apply text-[26px] leading-[1.15] font-medium tracking-[0.03em] text-blue md:text-[30px];
+    @apply font-display text-[32px] leading-[1.1] font-medium tracking-[-0.015em] text-ink md:text-[40px];
   }
-  /* tiêu đề khối: in hoa, giãn rộng như chữ kẻ trên kính */
+  /* tiêu đề khối: chữ có chân cỡ vừa, viết thường như tiêu đề mục trong bài báo */
   .heading {
-    @apply text-[13px] leading-5 font-semibold tracking-[0.08em] text-blue uppercase;
+    @apply font-display text-[19px] leading-6 font-medium tracking-[-0.005em] text-ink;
   }
   .panel {
     @apply rounded-lg border border-border bg-surface;
@@ -94,7 +102,7 @@ body {
   .btn {
     --dot: var(--navy);
     --dot-ink: var(--cream);
-    @apply relative isolate inline-flex h-11 md:h-9 cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-sm border border-ink bg-transparent pr-4 pl-7 text-[13px] font-semibold tracking-[0.06em] whitespace-nowrap text-ink uppercase transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply relative isolate inline-flex h-11 md:h-9 cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-sm border border-ink bg-transparent pr-4 pl-7 text-[14px] font-semibold whitespace-nowrap text-ink transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-60;
   }
   .btn-primary {
     /* dùng chung với .btn trên nền kem: vàng đồng trên kem mất hết tương phản nên nút chính là xanh đen */
@@ -121,9 +129,9 @@ body {
   .label {
     @apply mb-2 block text-[13px] font-semibold tracking-[0.04em] text-blue;
   }
-  /* lời khách: cỡ đọc thoải mái, màu chữ chính */
+  /* lời khách: chữ có chân nghiêng như câu trích trong bài báo, tách khỏi chữ giao diện */
   .hand {
-    @apply text-[16px] leading-6 text-ink;
+    @apply font-display text-[17px] leading-6 text-ink italic;
   }
   /* vạch xanh mực bên trái các khối chứa lời khách */
   .notebook {

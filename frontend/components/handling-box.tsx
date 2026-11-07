@@ -33,7 +33,7 @@ export function HandlingBox({ storeId, review, onSaved }: { storeId: number; rev
         <option value="">Chưa xử lý</option>
         {Object.entries(STATUS_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
       </select>
-      {!editing && review.status_note && <span className="hand text-sm">{review.status_note}</span>}
+      {!editing && review.status_note && <span className="text-sm text-ink">{review.status_note}</span>}
       {!editing && (
         <button type="button" className="tap cursor-pointer font-medium text-accent hover:underline"
           onClick={() => { setNote(review.status_note ?? ""); setEditing(true); }}>

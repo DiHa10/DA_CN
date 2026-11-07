@@ -53,13 +53,13 @@ export default function PublicReviewPage() {
         ) : done ? (
           <div>
             <Icon3D name="heart" size={112} className="pop mb-4" />
-            <h1 style={{ animationDelay: "300ms" }} className="anim-rise text-[34px] leading-[1.1] font-normal tracking-[0.05em] text-gold">Cảm ơn bạn đã góp ý</h1>
+            <h1 style={{ animationDelay: "300ms" }} className="anim-rise font-display text-[38px] leading-[1.05] font-normal tracking-[-0.015em] text-gold">Cảm ơn bạn đã góp ý</h1>
             <p style={{ animationDelay: "380ms" }} className="anim-rise mt-2 text-muted">{storeName} đã nhận được góp ý của bạn và sẽ đọc từng ý một.</p>
           </div>
         ) : (
           <form ref={form} onSubmit={submit}>
             <p className="text-[13px] font-medium tracking-[0.08em] text-muted uppercase">Góp ý cho</p>
-            <h1 className="mt-2 text-[34px] leading-[1.1] font-normal tracking-[0.05em] text-gold sm:text-[46px]">{storeName}</h1>
+            <h1 className="mt-2 font-display text-[38px] leading-[1.05] font-normal tracking-[-0.015em] text-gold sm:text-[52px]">{storeName}</h1>
 
             <fieldset className="mt-10">
               <legend className="label">Bạn thấy bữa ăn hôm nay thế nào?</legend>
