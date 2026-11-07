@@ -4,10 +4,11 @@ import { Mark, Wordmark } from "@/components/mark";
 import { Icon3D } from "@/components/icon3d";
 import { NegativeAlertProvider, useNegativeAlert } from "@/components/negative-alert";
 import { StoreProvider, useStores } from "@/components/store-context";
-import { can } from "@/lib/api";
-import { Columns3, ExternalLink, LayoutDashboard, LogOut, MessagesSquare, Store, Upload, UserRound } from "lucide-react";
+import { api, can, type Summary } from "@/lib/api";
+import { ROLE_LABEL } from "@/lib/labels";
+import { CircleHelp, Columns3, ExternalLink, LayoutDashboard, LogOut, MessagesSquare, QrCode, Store, Upload, UserRound } from "lucide-react";
 import Link from "next/link";
-import { Fragment } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 const NAV = [
@@ -60,11 +61,19 @@ function Sidebar() {
   const logout = useLogout();
   const { newIds } = useNegativeAlert();
   const nav = useNav();
+  const { store } = useStores();
   return (
     <aside className="on-dark hidden md:sticky md:top-0 md:row-span-2 md:flex md:h-screen md:flex-col md:px-4">
       <Link href="/gioi-thieu" aria-label="Quán Nghe: cách hoạt động" className="flex h-14 items-center px-2">
         <Wordmark />
       </Link>
+      {/* quán đang xem và quyền của mình ở quán đó: các nút bị ẩn theo vai trò, người dùng cần biết vì sao */}
+      {store && (
+        <div className="mt-2 rounded-sm border border-[#22324f] px-3 py-2.5">
+          <p className="truncate text-sm font-medium text-cream" title={store.name}>{store.name}</p>
+          <p className="text-xs text-on-dark-muted">Vai trò: {ROLE_LABEL[store.role] ?? store.role}</p>
+        </div>
+      )}
       <nav aria-label="Điều hướng chính" className="mt-6 flex flex-col gap-1">
         {nav.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);
@@ -87,8 +96,18 @@ function Sidebar() {
           );
         })}
       </nav>
+      {store && <WeekStats storeId={store.id} />}
+      <div className="mt-auto mb-3 flex flex-col border-t border-[#22324f] pt-3">
+        {store && (
+          <a href={`/r/${store.slug}`} target="_blank" rel="noreferrer" className={SUB_LINK}>
+            <ExternalLink aria-hidden strokeWidth={1.5} className="size-4" /> Form góp ý của khách
+          </a>
+        )}
+        <Link href="/stores" className={SUB_LINK}><QrCode aria-hidden strokeWidth={1.5} className="size-4" /> Mã QR để in</Link>
+        <Link href="/gioi-thieu" className={SUB_LINK}><CircleHelp aria-hidden strokeWidth={1.5} className="size-4" /> Cách hoạt động</Link>
+      </div>
       <Link href="/account" aria-current={pathname.startsWith("/account") ? "page" : undefined}
-        className={`mt-auto flex h-9 items-center gap-2.5 rounded-sm border px-2.5 text-[13px] font-medium tracking-[0.06em] uppercase transition-colors duration-150 ${
+        className={`flex h-9 items-center gap-2.5 rounded-sm border px-2.5 text-[13px] font-medium tracking-[0.06em] uppercase transition-colors duration-150 ${
           pathname.startsWith("/account") ? "border-white text-cream" : "border-transparent text-on-dark-muted hover:text-cream"}`}>
         <UserRound aria-hidden strokeWidth={1.5} className="size-4" /> Tài khoản
       </Link>
@@ -97,6 +116,39 @@ function Sidebar() {
         <LogOut aria-hidden strokeWidth={1.5} className="size-4" /> Đăng xuất
       </button>
     </aside>
+  );
+}
+
+const SUB_LINK = "flex h-8 items-center gap-2.5 px-2.5 text-[13px] text-on-dark-muted transition-colors duration-150 hover:text-cream";
+
+// 7 ngày qua của quán đang xem: nhìn được tình hình ở mọi trang, bấm vào mở đúng danh sách
+function WeekStats({ storeId }: { storeId: number }) {
+  const [data, setData] = useState<Summary | null>(null);
+  useEffect(() => {
+    let alive = true;
+    const load = () => api<Summary>(`/stores/${storeId}/dashboard?days=7`).then((d) => alive && setData(d), () => {});
+    load();
+    const t = setInterval(load, 5 * 60_000);
+    return () => { alive = false; clearInterval(t); };
+  }, [storeId]);
+  if (!data) return null;
+  const from = `date_from=${data.since}&hidden=false`;
+  return (
+    <section aria-label="7 ngày qua" className="mt-6 rounded-sm border border-[#22324f] px-3 py-3">
+      <p className="text-[11px] font-semibold tracking-[0.08em] text-on-dark-muted uppercase">7 ngày qua</p>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <Link href={`/reviews?${from}`} className="group">
+          <span className="num block text-[22px] leading-7 text-cream group-hover:text-gold">{data.total}</span>
+          <span className="text-xs text-on-dark-muted">đánh giá</span>
+        </Link>
+        <Link href={`/reviews?sentiment=negative&${from}`} className="group">
+          <span className={`num block text-[22px] leading-7 group-hover:text-gold ${data.sentiment.negative ? "text-gold" : "text-cream"}`}>
+            {data.sentiment.negative}
+          </span>
+          <span className="text-xs text-on-dark-muted">tiêu cực</span>
+        </Link>
+      </div>
+    </section>
   );
 }
 
