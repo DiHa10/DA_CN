@@ -72,3 +72,16 @@ def test_complaints_by_time(client):
     assert t["total"] == 4
     assert t["slots"][1] == "Trưa 11–14h" and t["cells"][1][5] == {"total": 3, "negative": 2}
     assert t["cells"][4][4] == {"total": 1, "negative": 1}
+
+
+def test_summary_previous_period_and_rating_dist(client):
+    h, base = setup(client)
+    now = datetime.now(timezone.utc)
+    at = lambda d: (now - timedelta(days=d)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    # 7 ngày gần nhất: 2 review (5★, 1★); 7 ngày trước đó: 1 review 4★; cũ hơn nữa không tính
+    load(client, h, base, [f"Món ăn ngon,5,{at(1)}", f"Phục vụ chậm quá,1,{at(2)}", f"Món ăn ngon,4,{at(9)}", f"Món ăn ngon,3,{at(30)}"],
+         header="content,rating,created_at")
+    d = client.get(f"{base}/dashboard?days=7", headers=h).json()
+    assert d["total"] == 2 and d["rating_dist"] == [1, 0, 0, 0, 1]
+    assert d["previous"]["total"] == 1 and d["previous"]["avg_rating"] == 4
+    assert client.get(f"{base}/dashboard", headers=h).json()["previous"] is None  # toàn bộ lịch sử: không có kỳ trước

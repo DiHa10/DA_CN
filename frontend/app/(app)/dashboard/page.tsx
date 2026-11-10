@@ -5,13 +5,11 @@ import { Skeleton } from "@/components/skeleton";
 import { useNegativeAlert } from "@/components/negative-alert";
 import { useStores } from "@/components/store-context";
 import { api, can, type Action, type Anomalies, type AspectRow, type Review, type Summary } from "@/lib/api";
-import { actionNumbers, ActionsPanel, TimeHeatmap } from "./followup";
-import {
-  ACCENT, ASPECT_LABEL, formatDate, formatNum, formatPct, SENTIMENT_COLOR, SENTIMENT_LABEL, SOURCE_LABEL,
-} from "@/lib/labels";
+import { ActionsPanel, TimeHeatmap } from "./followup";
+import { AspectChart, Kpis, MoodCard, TrendChart } from "./charts";
+import { ASPECT_LABEL, formatDate, SOURCE_LABEL } from "@/lib/labels";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 // Câu hỏi của màn hình: "Khách đang chê điều gì nhiều nhất?" — bảng khía cạnh là khối lớn nhất.
 const MIN_MENTIONS = 3; // khía cạnh ít lượt nhắc quá thì tỉ lệ không đáng tin
@@ -106,7 +104,7 @@ export default function DashboardPage() {
       {data && anomalies && <TodoCard anomalies={anomalies} data={data} />}
 
       {!data && !error && (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_384px]">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="panel p-5"><Skeleton lines={8} /></div>
           <div className="panel p-5"><Skeleton lines={5} /></div>
         </div>
@@ -121,11 +119,12 @@ export default function DashboardPage() {
       )}
 
       {data && data.analyzed > 0 && (
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_384px]">
+        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="min-w-0 space-y-6">
             <Kpis data={data} rangeLabel={rangeLabel} />
-            <AspectBoard aspects={aspects} since={data.since} />
-            <Trend data={data} actions={actions} />
+            <AspectChart aspects={aspects} since={data.since} />
+            <MoodCard data={data} />
+            <TrendChart data={data} actions={actions} />
             {store && <ActionsPanel storeId={store.id} actions={actions} canEdit={can(store, "manager")} onChange={setActions} />}
             <TimeHeatmap data={data.by_time} />
           </div>
@@ -192,183 +191,6 @@ function TodoCard({ anomalies, data }: { anomalies: Anomalies; data: Summary }) 
           ))}
         </ul>
       )}
-    </section>
-  );
-}
-
-function Kpis({ data, rangeLabel }: { data: Summary; rangeLabel: string }) {
-  const s = data.sentiment;
-  const since = new Date(Date.now() - 28 * 86400e3).toISOString().slice(0, 10);
-  const last4 = data.trend.filter((w) => w.week_start > since).reduce((n, w) => n + w.positive + w.neutral + w.negative, 0);
-  const pending = data.total - data.analyzed;
-  const cells = [
-    {
-      label: "Đánh giá",
-      value: data.total.toLocaleString("vi-VN"),
-      note: pending ? `${pending} đang chờ phân tích` : data.since ? `trong ${rangeLabel.toLowerCase()} qua` : `${last4} trong 4 tuần gần nhất`,
-    },
-    { label: "Tích cực", value: formatPct(s.positive, data.analyzed), note: `${s.positive} đánh giá` },
-    { label: "Tiêu cực", value: formatPct(s.negative, data.analyzed), note: `${s.negative} đánh giá` },
-    {
-      label: "Điểm sao trung bình",
-      value: data.avg_rating === null ? "—" : formatNum(data.avg_rating, 2),
-      unit: data.avg_rating === null ? undefined : "/5",
-      note: `từ ${data.rated} lượt chấm sao`,
-    },
-  ];
-  return (
-    <section aria-label="Chỉ số chính" className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-4">
-      {cells.map((c) => (
-        <div key={c.label} className="bg-surface px-4 py-3.5">
-          <p className="text-sm text-muted">{c.label}</p>
-          <p className="figure mt-0.5 text-[28px] leading-9">
-            {c.value}{c.unit && <span className="ml-0.5 text-sm text-muted">{c.unit}</span>}
-          </p>
-          <p className="text-xs text-muted">{c.note}</p>
-        </div>
-      ))}
-    </section>
-  );
-}
-
-function Legend() {
-  return (
-    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-      {(["negative", "neutral", "positive"] as const).map((k) => (
-        <li key={k} className="flex items-center gap-1.5">
-          <span aria-hidden className="h-2 w-3 rounded-sm" style={{ background: SENTIMENT_COLOR[k] }} />
-          {SENTIMENT_LABEL[k]}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-// Dấu ấn riêng: mỗi khía cạnh một thanh chê | trung lập | khen, kèm lời chê gần nhất của khách
-function AspectBoard({ aspects, since }: { aspects: AspectRow[]; since: string | null }) {
-  return (
-    <section className="panel">
-      <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-4">
-        <div>
-          <h2 className="heading">Khách nói gì về từng khía cạnh</h2>
-          <p className="text-xs text-muted">Xếp theo tỉ lệ tiêu cực, cao nhất trước</p>
-        </div>
-        <Legend />
-      </div>
-      {aspects.length === 0 ? (
-        <p className="px-5 py-4 text-sm text-muted">Chưa đủ dữ liệu: mỗi khía cạnh cần ít nhất {MIN_MENTIONS} lượt nhắc.</p>
-      ) : (
-        <ul className="notebook mt-2 pb-2">
-          {aspects.map((a, i) => {
-            const label = ASPECT_LABEL[a.aspect] ?? a.aspect;
-            return (
-              <li key={a.aspect} className="border-t border-rule px-5 py-3 first:border-t-0">
-                <div className="grid grid-cols-[116px_minmax(0,1fr)_44px] items-center gap-3 sm:gap-4 sm:grid-cols-[132px_minmax(0,1fr)_72px]">
-                  <Link href={`/reviews?aspect=${a.aspect}&sentiment=negative${since ? `&date_from=${since}` : ""}`} className="tap truncate font-medium hover:underline">
-                    {label} <span className="num font-normal text-muted">{a.total}</span>
-                  </Link>
-                  <div className="grow-x flex h-2.5 gap-0.5 overflow-hidden rounded-sm" role="img" style={{ animationDelay: `${i * 40}ms` }}
-                    aria-label={`${label}: ${a.negative} tiêu cực, ${a.neutral} trung lập, ${a.positive} tích cực`}>
-                    {(["negative", "neutral", "positive"] as const).map((k) => a[k] > 0 && (
-                      <span key={k} style={{ flexGrow: a[k], background: SENTIMENT_COLOR[k] }} />
-                    ))}
-                  </div>
-                  <p className="num text-right">
-                    <span className={a.negative ? "font-medium text-negative" : "text-muted"}>{pct0(negRate(a))}</span>
-                  </p>
-                </div>
-                {a.latest_negative && (
-                  <p className="mt-1 truncate sm:ml-[148px]">
-                    <span className="hand">{a.latest_negative.content}</span>{" "}
-                    <span className="text-xs whitespace-nowrap text-muted">· {formatDate(a.latest_negative.created_at)}</span>
-                  </p>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </section>
-  );
-}
-
-// Xu hướng theo tuần: tỉ lệ chê (máy đọc lời khách) hoặc điểm sao (khách tự chấm), chọn bằng tab
-function Trend({ data, actions }: { data: Summary; actions: Action[] }) {
-  const [metric, setMetric] = useState<"neg" | "star">("neg");
-  const stars = metric === "star";
-  const points = data.trend.map((w) => {
-    const n = w.positive + w.neutral + w.negative;
-    return {
-      week: w.week_start, label: formatDate(w.week_start).slice(0, 5), neg: w.negative, n, rated: w.rated,
-      rate: n ? (w.negative / n) * 100 : 0, star: w.avg_rating,
-    };
-  });
-  const negAvg = (data.sentiment.negative / data.analyzed) * 100;
-  const avg = stars ? data.avg_rating : negAvg;
-  // mốc tròn, mốc trên cùng cao hơn giá trị lớn nhất để đường không chạm mép
-  const step = Math.max(negAvg, ...points.map((p) => p.rate)) > 40 ? 20 : 10;
-  const top = Math.min(100, (Math.floor(Math.max(negAvg, ...points.map((p) => p.rate)) / step) + 1) * step); // tỉ lệ không vượt 100%
-  const ticks = stars ? [1, 2, 3, 4, 5] : Array.from({ length: top / step + 1 }, (_, i) => i * step);
-  const axis = { stroke: "transparent", tick: { fill: "#5d5f60", fontSize: 12 } };
-  const rated = points.filter((p) => p.star !== null);
-  const fmt = (v: number) => (stars ? `${formatNum(v, 2)} sao` : `${formatNum(v)}%`);
-  const series = stars ? rated.map((p) => p.star!) : points.map((p) => p.rate);
-  // mốc cải thiện: vạch dọc ở tuần chứa ngày áp dụng (tuần bắt đầu thứ Hai), số khớp khối "Việc quán đã thay đổi"
-  const numbers = actionNumbers(actions);
-  const marks = actions.flatMap((a) => {
-    const d = new Date(`${a.day}T00:00:00Z`);
-    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
-    const p = points.find((x) => x.week === d.toISOString().slice(0, 10));
-    return p ? [{ id: a.id, x: p.label, n: numbers.get(a.id)! }] : [];
-  });
-
-  return (
-    <section className="panel px-5 pt-4 pb-3">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="heading">{stars ? "Điểm sao trung bình theo tuần" : "Tỉ lệ đánh giá tiêu cực theo tuần"}</h2>
-          <p className="text-xs text-muted">
-            {avg === null ? "Chưa có lượt chấm sao nào" : `Đường nét đứt: trung bình cả khoảng ${fmt(avg)}`}
-            {marks.length > 0 && ". Vạch đậm có số: mốc quán thay đổi"}
-          </p>
-        </div>
-        <div role="group" aria-label="Chỉ số" className="flex rounded-md bg-raised p-0.5 ring-1 ring-border">
-          {([["neg", "Tỉ lệ tiêu cực"], ["star", "Điểm sao"]] as const).map(([k, label]) => (
-            <button key={k} type="button" aria-pressed={metric === k} onClick={() => setMetric(k)}
-              className={`h-9 cursor-pointer rounded-sm px-2.5 text-[13px] md:h-7 ${metric === k ? "bg-surface font-medium text-ink ring-1 ring-border" : "text-muted hover:text-ink"}`}>
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-      {/* biểu đồ SVG không đọc được bằng trình đọc màn hình: đưa số liệu chính thành một câu */}
-      <div className="mt-3 h-[200px]" role="img" aria-label={series.length
-        ? `${stars ? "Điểm sao" : "Tỉ lệ tiêu cực"} theo tuần, từ ${fmt(series[0])} đến ${fmt(series.at(-1)!)}; cao nhất ${fmt(Math.max(...series))}, thấp nhất ${fmt(Math.min(...series))}`
-        : "Chưa có dữ liệu theo tuần"}>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={points} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-            <CartesianGrid stroke="#efeeea" vertical={false} />
-            <XAxis dataKey="label" {...axis} tickLine={false} minTickGap={24} />
-            <YAxis domain={stars ? [1, 5] : [0, top]} ticks={ticks} unit={stars ? "" : "%"} {...axis} tickLine={false} />
-            {avg !== null && <ReferenceLine y={avg} stroke="#8f9195" strokeDasharray="4 4" />}
-            {marks.map((m) => (
-              <ReferenceLine key={m.id} x={m.x} stroke={ACCENT} strokeWidth={1.5}
-                label={{ value: m.n, position: "insideTopRight", fill: ACCENT, fontSize: 12, fontWeight: 600 }} />
-            ))}
-            <Tooltip
-              cursor={{ stroke: "#858c99" }}
-              contentStyle={{ border: "1px solid #e6e4df", borderRadius: 6, background: "#ffffff", fontSize: 13, padding: "6px 10px" }}
-              labelFormatter={(_, p) => (p[0] ? `Tuần từ ${formatDate(p[0].payload.week)}` : "")}
-              formatter={(_, __, p) => stars
-                ? [`${formatNum(p.payload.star, 2)} sao (${p.payload.rated} lượt chấm)`, "Điểm sao"]
-                : [`${formatNum(p.payload.rate)}% (${p.payload.neg}/${p.payload.n} đánh giá)`, "Tiêu cực"]}
-            />
-            {/* tuần không ai chấm sao thì nối qua, không kéo đường về 0 */}
-            <Line type="linear" dataKey={stars ? "star" : "rate"} stroke={stars ? "#b8862f" : ACCENT} strokeWidth={2}
-              dot={stars ? { r: 2 } : false} activeDot={{ r: 4 }} connectNulls isAnimationActive={false} />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
     </section>
   );
 }

@@ -64,6 +64,9 @@ export type Summary = {
   aspects: AspectRow[];
   complaints: { phrase: string; count: number }[];
   open_complaints: number;
+  rating_dist: number[]; // số lượt 1★..5★
+  // cùng độ dài ngay trước khoảng đang xem; null khi xem toàn bộ lịch sử
+  previous: { total: number; analyzed: number; sentiment: Counts; avg_rating: number | null } | null;
   // chỉ góp ý qua QR: cells[khung giờ][thứ 0 = thứ Hai]
   by_time: { total: number; slots: string[]; cells: { total: number; negative: number }[][] };
 };

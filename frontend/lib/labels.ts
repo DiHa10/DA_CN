@@ -8,16 +8,19 @@ export const SENTIMENT_LABEL: Record<Sentiment, string> = {
   negative: "Tiêu cực",
 };
 
-// màu dữ liệu: khen xanh, chê đỏ, trung lập xám (SVG của Recharts cần mã màu, không nhận CSS var)
+// màu dữ liệu: khen xanh dương, chê đỏ, trung lập xám (biểu đồ cần mã màu, không nhận CSS var).
+// Khen là xanh dương chứ không xanh lá: đỏ/xanh lá gần như trùng nhau với người mù màu đỏ-lục
+// (ΔE 3,6 theo kiểm tra của skill dataviz; đỏ/xanh dương 22,4). Xanh lá chỉ còn cho trạng thái "tốt" (đã xử lý, giảm rõ).
 export const SENTIMENT_COLOR: Record<Sentiment, string> = {
-  positive: "#2f7a3e",
-  neutral: "#c3c9d4",
+  positive: "#2f70bb",
+  neutral: "#c9cbcd",
   negative: "#b3362b",
 };
+export const STAR_COLOR = "#a8740f"; // vàng sẫm: 3,5:1 trên nền trắng (vàng đồng của sao chỉ 1,9:1)
 
 // cặp nền nhạt + chữ đậm cùng tông cho pill
 export const SENTIMENT_PILL: Record<Sentiment, string> = {
-  positive: "bg-[#e2ecdf] text-[#103b15]",
+  positive: "bg-[#e3edf9] text-[#163a66]",
   neutral: "bg-[#e6e9ef] text-[#2b3140]",
   negative: "bg-[#f6e0da] text-[#7a1f17]",
 };

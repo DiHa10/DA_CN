@@ -10,12 +10,12 @@
   },
   "dependencies": {
     "animejs": "4.5.0",
+    "echarts": "6.0.0",
     "lucide-react": "^0.511.0",
     "next": "15.5.28",
     "qrcode.react": "^4.2.0",
     "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "recharts": "^2.15.3"
+    "react-dom": "19.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

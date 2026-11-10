@@ -78,6 +78,15 @@ def summary(days: int | None = Query(None, ge=1, le=3650), store: Store = Depend
     phrases = [{"phrase": p["phrase"], "count": sum(p["phrase"] in c for c in lowered)} for p in complaint_phrases(complaints[:200], top=12)]
     phrases = sorted((p for p in phrases if p["count"] >= 2), key=lambda p: -p["count"])[:8]
     ratings = [r.rating for r in reviews if r.rating]
+    previous = None  # cùng độ dài ngay trước khoảng đang xem: thẻ chỉ số ghi "so với 30 ngày trước"
+    if since:
+        prev = db.scalars(select(Review).where(Review.store_id == store.id, counted(),
+                                               Review.created_at >= vn_day_start(since - timedelta(days=days)),
+                                               Review.created_at < vn_day_start(since))).all()
+        prev_rated = [r.rating for r in prev if r.rating]
+        previous = {"total": len(prev), "analyzed": sum(1 for r in prev if r.analysis),
+                    "sentiment": row(Counter(r.analysis.sentiment for r in prev if r.analysis)),
+                    "avg_rating": round(sum(prev_rated) / len(prev_rated), 2) if prev_rated else None}
     aspect_rows = [{"aspect": a, **row(c), "total": sum(c.values()), "latest_negative": latest_negative.get(a)}
                    for a, c in aspects.items()]
     return {
@@ -87,6 +96,8 @@ def summary(days: int | None = Query(None, ge=1, le=3650), store: Store = Depend
         "sentiment": row(totals),
         "rated": len(ratings),
         "avg_rating": round(sum(ratings) / len(ratings), 2) if ratings else None,
+        "rating_dist": [ratings.count(n) for n in range(1, 6)],  # số lượt 1★..5★
+        "previous": previous,
         "trend": [{"week_start": w, **row(c), "rated": len(week_ratings[w]),
                    "avg_rating": round(sum(week_ratings[w]) / len(week_ratings[w]), 2) if week_ratings[w] else None}
                   for w, c in sorted(trend.items())],

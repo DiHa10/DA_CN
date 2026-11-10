@@ -33,7 +33,7 @@ const SUMMARY: [string, number, number][] = [["service", 54, 4], ["location", 43
 const TALLY: [string, number][] = [["Đánh giá", 300], ["Khen", 174], ["Chê", 101]];
 const COLS = 40;
 const cellColor = (neg: number, neu: number, c: number) =>
-  c < (neg * COLS) / 100 ? "bg-negative" : c < ((neg + neu) * COLS) / 100 ? "bg-[#c9cbcd]" : "bg-positive";
+  c < (neg * COLS) / 100 ? "bg-negative" : c < ((neg + neu) * COLS) / 100 ? "bg-[#c9cbcd]" : "bg-[#2f70bb]";
 
 const PARTICLES = 12; // hạt trên mỗi đường ở cảnh thu thập
 
@@ -51,7 +51,7 @@ const HEADS: [string, number[]][] = [
 const HEAD_LABEL = ["Không nhắc", "Khen", "Trung lập", "Chê"];
 // thanh xếp chồng theo thứ tự đọc chê | trung lập | khen | không nhắc, như bảng khía cạnh trong ứng dụng
 const HEAD_ORDER = [3, 2, 1, 0];
-const HEAD_COLOR = ["#ebeae6", "#2f7a3e", "#c9cbcd", "#b3362b"];
+const HEAD_COLOR = ["#ebeae6", "#2f70bb", "#c9cbcd", "#b3362b"];
 // 32 ô đại diện cho 768 số của vector [CLS]; độ đậm cố định để server và trình duyệt vẽ giống nhau
 const CLS_CELLS = Array.from({ length: 32 }, (_, i) => 0.15 + 0.85 * Math.abs(Math.sin(i * 2.3 + 0.7)));
 const CUE_HIT: Record<string, string> = { food: "“phở”, “ngon”", service: "“phục vụ”, “chậm”" };

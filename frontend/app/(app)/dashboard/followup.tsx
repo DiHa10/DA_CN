@@ -3,8 +3,9 @@
 // Sau khi phân tích: quán đã làm gì, có hiệu quả không (mốc cải thiện), và khách chê vào lúc nào (góp ý QR theo giờ).
 import { api, json, type Action, type Summary } from "@/lib/api";
 import { ASPECT_LABEL, formatDate, formatPct } from "@/lib/labels";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Busy } from "@/components/dots";
+import { AXIS_TEXT, EChart, TOOLTIP, type EOption } from "@/components/echart";
 
 const pct = (s: { mentions: number; negative: number }) => formatPct(s.negative, s.mentions);
 const VERDICT = {
@@ -129,14 +130,13 @@ const DAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 const DAY_NAMES = ["thứ Hai", "thứ Ba", "thứ Tư", "thứ Năm", "thứ Sáu", "thứ Bảy", "Chủ nhật"];
 const MIN_QR = 10; // ít góp ý QR quá thì bảng chỉ là vài ô lẻ
 const MIN_CELL = 3; // ô ít góp ý hơn thì không tô màu: 1/1 = 100% không nói lên gì
-// thang một màu đỏ, nhạt -> đậm theo tỉ lệ chê; mức đậm dùng chữ kem
+// thang một màu đỏ, nhạt -> đậm theo tỉ lệ chê (%); mức đậm dùng chữ trắng. -1: ô dưới MIN_CELL góp ý, không tô
 const LEVELS = [
-  { max: 0.25, bg: "#f6e0da", ink: "#2b3140", label: "dưới 25%" },
-  { max: 0.5, bg: "#e9a99e", ink: "#2b3140", label: "25–50%" },
-  { max: 0.75, bg: "#c8584a", ink: "#fcf9f0", label: "50–75%" },
-  { max: Infinity, bg: "#8f241b", ink: "#fcf9f0", label: "từ 75%" },
+  { min: 0, max: 25, bg: "#f6e0da", ink: "#2b3140", label: "dưới 25%" },
+  { min: 25, max: 50, bg: "#e9a99e", ink: "#2b3140", label: "25–50%" },
+  { min: 50, max: 75, bg: "#c8584a", ink: "#ffffff", label: "50–75%" },
+  { min: 75, max: 101, bg: "#8f241b", ink: "#ffffff", label: "từ 75%" },
 ];
-const level = (rate: number) => LEVELS.find((l) => rate < l.max)!;
 
 // Khách chê vào lúc nào: khung giờ × thứ trong tuần, chỉ từ góp ý QR (gửi ngay tại quán nên giờ gửi ~ giờ ở quán)
 export function TimeHeatmap({ data }: { data: Summary["by_time"] }) {
@@ -149,6 +149,29 @@ export function TimeHeatmap({ data }: { data: Summary["by_time"] }) {
       worst = { slot: s, day: d, rate, neg: c.negative, n: c.total };
   }));
   const w = worst as { slot: number; day: number; rate: number; neg: number; n: number } | null;
+
+  const option = useMemo<EOption>(() => ({
+    grid: { left: 4, right: 4, top: 4, bottom: 36, containLabel: true },
+    tooltip: { ...TOOLTIP, formatter: (p: { value: [number, number, number] }) => {
+      const c = cells[p.value[1]][p.value[0]];
+      return `<b>${slots[p.value[1]]}, ${DAY_NAMES[p.value[0]]}</b><br/>${c.total ? `${c.negative}/${c.total} góp ý có lời chê` : "Không có góp ý"}`;
+    } },
+    xAxis: { type: "category", data: DAYS, position: "top", splitArea: { show: false }, axisLine: { show: false }, axisTick: { show: false }, axisLabel: AXIS_TEXT },
+    yAxis: { type: "category", data: slots, inverse: true, axisLine: { show: false }, axisTick: { show: false }, axisLabel: AXIS_TEXT },
+    visualMap: {
+      type: "piecewise", orient: "horizontal", left: "center", bottom: 0, itemWidth: 14, itemHeight: 10, textStyle: AXIS_TEXT,
+      pieces: [{ value: -1, color: "#f3f2ef", label: `dưới ${MIN_CELL} góp ý` }, ...LEVELS.map((l) => ({ gte: l.min, lt: l.max, color: l.bg, label: l.label }))],
+    },
+    series: [{
+      type: "heatmap", itemStyle: { borderColor: "#ffffff", borderWidth: 3, borderRadius: 4 },
+      emphasis: { itemStyle: { borderColor: "#131416", borderWidth: 1 } },
+      data: cells.flatMap((row, si) => row.map((c, d) => {
+        const v = c.total >= MIN_CELL ? Math.round((c.negative / c.total) * 100) : -1;
+        const ink = v >= 50 ? "#ffffff" : v >= 0 ? "#2b3140" : "#8f9195";
+        return { value: [d, si, v], label: { show: c.total > 0, color: ink, fontSize: 12, formatter: `${c.negative}/${c.total}` } };
+      })),
+    }],
+  }), [cells, slots]);
 
   return (
     <section className="panel px-5 pt-4 pb-4">
@@ -165,44 +188,10 @@ export function TimeHeatmap({ data }: { data: Summary["by_time"] }) {
               ? <>Chê nhiều nhất: <b className="font-medium">{slots[w.slot].split(" ")[0]} {DAY_NAMES[w.day]}</b>, {w.neg}/{w.n} góp ý có lời chê.</>
               : "Chưa khung giờ nào có lời chê."}
           </p>
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-[420px] table-fixed border-separate border-spacing-0.5 text-center text-xs">
-              <caption className="sr-only">Số góp ý có lời chê trên tổng góp ý QR, theo khung giờ và thứ</caption>
-              <thead>
-                <tr>
-                  <th scope="col" className="w-24" />
-                  {DAYS.map((d, i) => <th key={d} scope="col" className="pb-1 font-normal text-muted"><abbr title={DAY_NAMES[i]} className="no-underline">{d}</abbr></th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {cells.map((row, s) => (
-                  <tr key={slots[s]}>
-                    <th scope="row" className="pr-2 text-left font-normal whitespace-nowrap text-muted">{slots[s]}</th>
-                    {row.map((c, d) => {
-                      const tone = c.total >= MIN_CELL ? level(c.negative / c.total) : null;
-                      const text = c.total ? `${c.negative}/${c.total}` : "";
-                      return (
-                        <td key={d} title={c.total ? `${slots[s]} ${DAY_NAMES[d]}: ${c.negative} trên ${c.total} góp ý có lời chê` : undefined}
-                          className={`num h-9 rounded-sm ${tone ? "" : "bg-raised text-muted"}`}
-                          style={tone ? { background: tone.bg, color: tone.ink } : undefined}>
-                          {text || <span aria-label="không có góp ý">·</span>}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <ul className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
-            <li>Tỉ lệ chê:</li>
-            {LEVELS.map((l) => (
-              <li key={l.label} className="flex items-center gap-1.5">
-                <span aria-hidden className="h-3 w-4 rounded-sm" style={{ background: l.bg }} />{l.label}
-              </li>
-            ))}
-            <li className="flex items-center gap-1.5"><span aria-hidden className="h-3 w-4 rounded-sm bg-raised" />dưới {MIN_CELL} góp ý</li>
-          </ul>
+          <div className="mt-2 overflow-x-auto"><div className="min-w-[440px]">
+            <EChart option={option} height={56 + slots.length * 40}
+              label={`Góp ý có lời chê theo khung giờ và thứ, ${total} góp ý QR${w ? `; nhiều nhất ${slots[w.slot]} ${DAY_NAMES[w.day]}` : ""}`} />
+          </div></div>
         </>
       )}
     </section>
