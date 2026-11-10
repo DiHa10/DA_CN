@@ -83,5 +83,6 @@ def test_summary_previous_period_and_rating_dist(client):
          header="content,rating,created_at")
     d = client.get(f"{base}/dashboard?days=7", headers=h).json()
     assert d["total"] == 2 and d["rating_dist"] == [1, 0, 0, 0, 1]
+    assert sum(sum(w["sources"].values()) for w in d["trend"]) == 2 and all(set(w["sources"]) == {"csv"} for w in d["trend"])
     assert d["previous"]["total"] == 1 and d["previous"]["avg_rating"] == 4
     assert client.get(f"{base}/dashboard", headers=h).json()["previous"] is None  # toàn bộ lịch sử: không có kỳ trước

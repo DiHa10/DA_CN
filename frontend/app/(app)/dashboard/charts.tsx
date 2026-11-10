@@ -4,7 +4,7 @@
 // màu: chê đỏ, trung lập xám, khen xanh dương (xem SENTIMENT_COLOR), sao vàng sẫm.
 import { AXIS_TEXT, EChart, GRID_LINE, TOOLTIP, type EOption } from "@/components/echart";
 import type { Action, AspectRow, Summary } from "@/lib/api";
-import { ACCENT, ASPECT_LABEL, formatDate, formatNum, formatPct, SENTIMENT_COLOR, SENTIMENT_LABEL, STAR_COLOR } from "@/lib/labels";
+import { ACCENT, ASPECT_LABEL, formatDate, formatNum, formatPct, SENTIMENT_COLOR, SENTIMENT_LABEL, SOURCE_COLOR, SOURCE_LABEL, STAR_COLOR } from "@/lib/labels";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { actionNumbers } from "./followup";
@@ -327,6 +327,86 @@ export function TrendChart({ data, actions }: { data: Summary; actions: Action[]
       </div>
       <div className="mt-2">
         {weeks.length ? <EChart option={option} height={260} label={summary} /> : <p className="py-6 text-sm text-muted">Chưa có dữ liệu theo tuần.</p>}
+      </div>
+    </section>
+  );
+}
+
+/* ---------- 5. Góp ý đến từ đâu: số đánh giá mỗi tuần theo nguồn ---------- */
+
+const SOURCES = ["google", "qr", "csv", "manual"]; // thứ tự cố định để mỗi nguồn luôn một màu
+
+export function SourceChart({ data }: { data: Summary }) {
+  const used = SOURCES.filter((k) => data.trend.some((w) => w.sources[k]));
+  const totals = used.map((k) => data.trend.reduce((n, w) => n + (w.sources[k] ?? 0), 0));
+  const all = totals.reduce((a, b) => a + b, 0);
+  const option = useMemo<EOption>(() => {
+    const weeks = data.trend;
+    const zoom = weeks.length > VISIBLE_WEEKS;
+    return {
+      grid: { left: 8, right: 16, top: 36, bottom: zoom ? 44 : 8, containLabel: true },
+      legend: { top: 0, right: 0, itemWidth: 12, itemHeight: 8, textStyle: AXIS_TEXT },
+      tooltip: {
+        ...TOOLTIP, trigger: "axis", axisPointer: { type: "shadow", shadowStyle: { color: "rgba(19,20,22,0.04)" } }, // taste-skill-ignore: dải tô cột đang rê chuột
+        formatter: (ps: { dataIndex: number }[]) => {
+          const w = weeks[ps[0].dataIndex];
+          return `<b>Tuần từ ${formatDate(w.week_start)}</b><br/>`
+            + used.map((k) => `<span style="color:${SOURCE_COLOR[k]}">●</span> ${SOURCE_LABEL[k] ?? k} ${w.sources[k] ?? 0}`).join("<br/>");
+        },
+      },
+      xAxis: { type: "category", data: weeks.map((w) => formatDate(w.week_start).slice(0, 5)), axisTick: { show: false }, axisLine: { lineStyle: { color: "#e6e4df" } }, axisLabel: AXIS_TEXT },
+      yAxis: { type: "value", minInterval: 1, splitLine: GRID_LINE, axisLabel: AXIS_TEXT },
+      dataZoom: zoom ? [
+        { type: "inside", startValue: weeks.length - VISIBLE_WEEKS, endValue: weeks.length - 1 },
+        { type: "slider", height: 18, bottom: 6, startValue: weeks.length - VISIBLE_WEEKS, endValue: weeks.length - 1, borderColor: "#e6e4df", showDetail: false },
+      ] : [],
+      series: used.map((k, i) => ({
+        name: SOURCE_LABEL[k] ?? k, type: "bar", stack: "s", barMaxWidth: 28, data: weeks.map((w) => w.sources[k] ?? 0),
+        itemStyle: { color: SOURCE_COLOR[k], borderRadius: i === used.length - 1 ? [3, 3, 0, 0] : 0 },
+      })),
+    };
+  }, [data.trend]); // eslint-disable-line react-hooks/exhaustive-deps -- used suy ra từ data.trend
+
+  if (!data.trend.length) return null;
+  return (
+    <section className="panel px-5 pt-4 pb-3">
+      <h2 className="heading">Góp ý đến từ đâu</h2>
+      <p className="text-xs text-muted">
+        {used.map((k, i) => `${SOURCE_LABEL[k] ?? k} ${formatPct(totals[i], all)}`).join(" · ")}
+        {!used.includes("qr") && ". Chưa có góp ý qua mã QR: in mã ở trang Cửa hàng để khách góp ý tại bàn"}
+      </p>
+      <div className="mt-2">
+        <EChart option={option} height={220} label={`Số đánh giá mỗi tuần theo nguồn: ${used.map((k, i) => `${SOURCE_LABEL[k] ?? k} ${totals[i]}`).join(", ")}`} />
+      </div>
+    </section>
+  );
+}
+
+/* ---------- 6. Cụm từ khách hay nhắc khi chê: thanh ngang, bấm để mở các đánh giá ---------- */
+
+export function ComplaintChart({ items, since }: { items: Summary["complaints"]; since: string | null }) {
+  const router = useRouter();
+  const option = useMemo<EOption>(() => ({
+    grid: { left: 4, right: 32, top: 4, bottom: 4, containLabel: true },
+    tooltip: { ...TOOLTIP, trigger: "item", formatter: (p: { name: string; value: number }) => `“${esc(p.name)}”: <b>${p.value}</b> đánh giá có lời chê` },
+    xAxis: { type: "value", show: false, max: Math.max(1, ...items.map((c) => c.count)) },
+    yAxis: { type: "category", inverse: true, data: items.map((c) => c.phrase), axisLine: { show: false }, axisTick: { show: false },
+      axisLabel: { ...AXIS_TEXT, color: "#131416", fontSize: 13, width: 120, overflow: "truncate" } },
+    series: [{
+      type: "bar", barWidth: 12, data: items.map((c) => c.count),
+      itemStyle: { color: C.negative, borderRadius: [0, 3, 3, 0] },
+      showBackground: true, backgroundStyle: { color: "#f3f2ef", borderRadius: 3 },
+      label: { show: true, position: "right", color: "#5d5f60", fontSize: 12 },
+    }],
+  }), [items]);
+  if (!items.length) return null;
+  return (
+    <section>
+      <h2 className="heading mb-2">Khách hay nhắc khi chê</h2>
+      <div className="panel px-3 py-2">
+        <EChart option={option} height={16 + items.length * 30}
+          label={items.map((c) => `${c.phrase}: ${c.count}`).join(", ")}
+          onClick={(e) => router.push(`/reviews?q=${encodeURIComponent(e.name)}&complaint=true&hidden=false${since ? `&date_from=${since}` : ""}`)} />
       </div>
     </section>
   );

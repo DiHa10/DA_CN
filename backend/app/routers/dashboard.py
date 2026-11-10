@@ -54,6 +54,7 @@ def summary(days: int | None = Query(None, ge=1, le=3650), store: Store = Depend
 
     totals = Counter(r.analysis.sentiment for r in analyzed)
     trend = defaultdict(Counter)
+    week_sources = defaultdict(Counter)  # google | qr | csv | manual theo tuần: góp ý đến từ đâu
     week_ratings = defaultdict(list)  # điểm sao theo tuần: chủ quán quen nhìn sao Google hơn tỉ lệ chê
     aspects = defaultdict(Counter)
     latest_negative = {}  # aspect -> nội dung review tiêu cực mới nhất, để chủ quán đọc lời khách
@@ -61,6 +62,7 @@ def summary(days: int | None = Query(None, ge=1, le=3650), store: Store = Depend
         day = vn_date(r.created_at)  # tuần bắt đầu thứ Hai theo giờ VN
         monday = (day - timedelta(days=day.weekday())).isoformat()
         trend[monday][r.analysis.sentiment] += 1
+        week_sources[monday][r.source] += 1
         if r.rating:
             week_ratings[monday].append(r.rating)
         for a in r.aspects:
@@ -98,7 +100,7 @@ def summary(days: int | None = Query(None, ge=1, le=3650), store: Store = Depend
         "avg_rating": round(sum(ratings) / len(ratings), 2) if ratings else None,
         "rating_dist": [ratings.count(n) for n in range(1, 6)],  # số lượt 1★..5★
         "previous": previous,
-        "trend": [{"week_start": w, **row(c), "rated": len(week_ratings[w]),
+        "trend": [{"week_start": w, **row(c), "sources": dict(week_sources[w]), "rated": len(week_ratings[w]),
                    "avg_rating": round(sum(week_ratings[w]) / len(week_ratings[w]), 2) if week_ratings[w] else None}
                   for w, c in sorted(trend.items())],
         "aspects": sorted(aspect_rows, key=lambda x: x["total"], reverse=True),

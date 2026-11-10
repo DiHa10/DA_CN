@@ -2,7 +2,7 @@
 
 // ECharts gọn: chỉ nạp các loại biểu đồ dùng tới (tree-shake), vẽ SVG cho nét, tự co giãn theo khung.
 // Không dùng echarts-for-react: vài chục dòng tự viết thay được, bớt một gói phụ thuộc.
-import { BarChart, HeatmapChart, LineChart, PieChart } from "echarts/charts";
+import { BarChart, HeatmapChart, LineChart, PieChart, RadarChart } from "echarts/charts";
 import {
   DataZoomComponent, GridComponent, LegendComponent, MarkLineComponent, TooltipComponent, VisualMapComponent,
 } from "echarts/components";
@@ -10,7 +10,7 @@ import * as echarts from "echarts/core";
 import { SVGRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "react";
 
-echarts.use([BarChart, HeatmapChart, LineChart, PieChart, DataZoomComponent, GridComponent, LegendComponent,
+echarts.use([BarChart, HeatmapChart, LineChart, PieChart, RadarChart, DataZoomComponent, GridComponent, LegendComponent,
   MarkLineComponent, TooltipComponent, VisualMapComponent, SVGRenderer]);
 
 export type EOption = echarts.EChartsCoreOption;

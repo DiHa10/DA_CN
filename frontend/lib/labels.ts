@@ -16,6 +16,10 @@ export const SENTIMENT_COLOR: Record<Sentiment, string> = {
   neutral: "#c9cbcd",
   negative: "#b3362b",
 };
+// màu nhận diện (quán, nguồn): bảng phân loại của skill dataviz, gán theo thứ tự cố định, không xoay vòng
+export const SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"];
+// nguồn đánh giá: tránh xanh dương (= khen) và cam đỏ (= chê) để không đọc nhầm nghĩa; đã qua kiểm tra mù màu
+export const SOURCE_COLOR: Record<string, string> = { google: "#6250d6", qr: "#1baf7a", csv: "#eda100", manual: "#e87ba4" };
 export const STAR_COLOR = "#a8740f"; // vàng sẫm: 3,5:1 trên nền trắng (vàng đồng của sao chỉ 1,9:1)
 
 // cặp nền nhạt + chữ đậm cùng tông cho pill

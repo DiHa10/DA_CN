@@ -6,7 +6,7 @@ import { useNegativeAlert } from "@/components/negative-alert";
 import { useStores } from "@/components/store-context";
 import { api, can, type Action, type Anomalies, type AspectRow, type Review, type Summary } from "@/lib/api";
 import { ActionsPanel, TimeHeatmap } from "./followup";
-import { AspectChart, Kpis, MoodCard, TrendChart } from "./charts";
+import { AspectChart, ComplaintChart, Kpis, MoodCard, SourceChart, TrendChart } from "./charts";
 import { ASPECT_LABEL, formatDate, SOURCE_LABEL } from "@/lib/labels";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -125,12 +125,13 @@ export default function DashboardPage() {
             <AspectChart aspects={aspects} since={data.since} />
             <MoodCard data={data} />
             <TrendChart data={data} actions={actions} />
+            <SourceChart data={data} />
             {store && <ActionsPanel storeId={store.id} actions={actions} canEdit={can(store, "manager")} onChange={setActions} />}
             <TimeHeatmap data={data.by_time} />
           </div>
           <div className="space-y-6">
             {store && <InsightsPanel storeId={store.id} canRegenerate={can(store, "manager")} days={range === "all" ? null : Number(range)} />}
-            <Complaints items={data.complaints} since={data.since} />
+            <ComplaintChart items={data.complaints} since={data.since} />
             <OpenComplaints reviews={recent} count={data.open_complaints} since={data.since} />
           </div>
         </div>
@@ -191,29 +192,6 @@ function TodoCard({ anomalies, data }: { anomalies: Anomalies; data: Summary }) 
           ))}
         </ul>
       )}
-    </section>
-  );
-}
-
-// Cụm từ khách hay nhắc trong lời chê: cụ thể hơn tên khía cạnh ("mùi thuốc lá" thay vì "Không gian")
-function Complaints({ items, since }: { items: Summary["complaints"]; since: string | null }) {
-  if (!items.length) return null;
-  const max = items[0].count;
-  return (
-    <section>
-      <h2 className="heading mb-2">Khách hay nhắc khi chê</h2>
-      <ul className="panel space-y-2 px-4 py-3">
-        {items.map((c) => (
-          <li key={c.phrase} className="grid grid-cols-[minmax(0,1fr)_72px_24px] items-center gap-3 text-sm">
-            <Link href={`/reviews?q=${encodeURIComponent(c.phrase)}&complaint=true&hidden=false${since ? `&date_from=${since}` : ""}`}
-              className="tap truncate font-medium hover:underline">
-              {c.phrase}
-            </Link>
-            <span aria-hidden className="h-1.5 rounded-sm bg-negative/70" style={{ width: `${(c.count / max) * 100}%` }} />
-            <span className="num text-right text-muted">{c.count}<span className="sr-only"> đánh giá</span></span>
-          </li>
-        ))}
-      </ul>
     </section>
   );
 }
