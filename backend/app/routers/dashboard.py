@@ -41,8 +41,10 @@ def by_time(analyzed: list[Review]) -> dict:
 
 
 @router.get("")
-def summary(days: int | None = Query(None, ge=1, le=3650), store: Store = Depends(staff_store), db: Session = Depends(get_db)):
-    """days: chỉ tính review trong N ngày gần nhất (theo ngày VN, tính cả hôm nay); bỏ trống là toàn bộ lịch sử."""
+def summary(days: int | None = Query(None, ge=1, le=3650), brief: bool = False,
+            store: Store = Depends(staff_store), db: Session = Depends(get_db)):
+    """days: chỉ tính review trong N ngày gần nhất (theo ngày VN, tính cả hôm nay); bỏ trống là toàn bộ lịch sử.
+    brief: bỏ phần tách cụm từ chê (tốn CPU nhất) cho ô "7 ngày qua" ở menu, vốn chỉ cần tổng số."""
     q = select(Review).where(Review.store_id == store.id, counted())
     since = None
     if days:
@@ -77,7 +79,8 @@ def summary(days: int | None = Query(None, ge=1, le=3650), store: Store = Depend
     # shortcut: tách từ ~3ms/review nên chỉ tìm cụm trong 200 review chê gần nhất; cần cả lịch sử thì tính sẵn khi phân tích.
     # Số hiển thị đếm lại đúng như trang Đánh giá lọc (?q=cụm&complaint=true): review có lời chê chứa cụm đó, bấm vào ra đúng số ấy
     lowered = [c.lower() for c in complaints]
-    phrases = [{"phrase": p["phrase"], "count": sum(p["phrase"] in c for c in lowered)} for p in complaint_phrases(complaints[:200], top=12)]
+    phrases = [] if brief else [{"phrase": p["phrase"], "count": sum(p["phrase"] in c for c in lowered)}
+                                for p in complaint_phrases(complaints[:200], top=12)]
     phrases = sorted((p for p in phrases if p["count"] >= 2), key=lambda p: -p["count"])[:8]
     ratings = [r.rating for r in reviews if r.rating]
     previous = None  # cùng độ dài ngay trước khoảng đang xem: thẻ chỉ số ghi "so với 30 ngày trước"

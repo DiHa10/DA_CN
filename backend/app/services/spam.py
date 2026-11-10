@@ -6,11 +6,13 @@ Các hàm kiểm tra là hàm thuần (không cần DB) để test và đo độ
 import hashlib
 import hmac
 import re
+from collections import defaultdict
 from datetime import timedelta
 from difflib import SequenceMatcher
+from functools import lru_cache
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, lazyload
 
 from ..models import Review
 from ..security import SECRET_KEY
@@ -22,6 +24,10 @@ DUPLICATE_MIN_WORDS = 8
 NEAR_DUPLICATE = 0.9  # độ giống tối thiểu để coi là gần trùng
 BURST_COUNT, BURST_MINUTES = 3, 10  # cùng một máy gửi từ 3 review trong 10 phút
 MISMATCH_CONFIDENCE = 0.8
+# shortcut: quanh một lô có hơn chừng này review (nhập file lớn cùng ngày) thì chỉ bắt trùng hẳn, gom theo nội dung đã
+# chuẩn hóa; so gần giống từng cặp là O(n²), 10.000 dòng thành 100 triệu phép so. Cần bắt gần trùng ở quán rất lớn
+# thì băm theo từng đoạn chữ (shingle/MinHash).
+NEAR_LIMIT = 300
 
 REASONS = ("duplicate", "burst", "gibberish", "rating_mismatch")
 
@@ -39,9 +45,13 @@ def is_gibberish(text: str) -> bool:
     return letters < 2 or letters / len(chars) < 0.5  # chỉ dấu câu/số/emoji, hoặc phần lớn không phải chữ
 
 
+@lru_cache(maxsize=20_000)  # mỗi lô lại gom cả nghìn review xung quanh: mỗi câu chỉ chuẩn hóa một lần
+def _words(text: str) -> tuple[str, ...]:
+    return tuple(re.findall(r"\w+", normalize(text)))  # bỏ dấu câu: "Phở ngon!!" và "phở ngon" là cùng một câu
+
+
 def is_near_duplicate(a: str, b: str) -> bool:
-    # bỏ dấu câu: "Phở ngon!!" và "phở ngon" là cùng một câu
-    wa, wb = (re.findall(r"\w+", normalize(x)) for x in (a, b))
+    wa, wb = _words(a), _words(b)
     # câu ngắn ("Giá hợp lý", "Dễ tìm") nhiều khách thật viết y hệt nhau, không tính trùng
     if min(len(wa), len(wb)) < DUPLICATE_MIN_WORDS:
         return False
@@ -70,26 +80,43 @@ def flag_reviews(db: Session, reviews: list[Review]) -> None:
     phân tích chưa đủ dấu hiệu."""
     for r in reviews:
         r.spam_reasons = None  # phân tích lại thì tính lại từ đầu
+    span = timedelta(days=DUPLICATE_DAYS)
+    batches = defaultdict(list)
     for r in reviews:
-        created = as_utc(r.created_at)
-        if is_gibberish(r.content):
-            _add(r, "gibberish")
-        # shortcut: so với mọi review của quán trong ±7 ngày, ổn tới vài trăm review/tuần; quán lớn hơn thì băm nội dung trước
-        neighbours = db.scalars(select(Review).where(
-            Review.store_id == r.store_id, Review.id != r.id,
-            Review.created_at >= created - timedelta(days=DUPLICATE_DAYS),
-            Review.created_at <= created + timedelta(days=DUPLICATE_DAYS))).all()
-        copies = [o for o in neighbours if is_near_duplicate(r.content, o.content)]
-        for x in [r, *copies] if copies else []:
-            _add(x, "duplicate")
-        if r.client_hash:
-            window = db.scalars(select(Review).where(
-                Review.store_id == r.store_id, Review.client_hash == r.client_hash,
-                Review.created_at >= created - timedelta(minutes=BURST_MINUTES),
-                Review.created_at <= created + timedelta(minutes=BURST_MINUTES))).all()
-            if len(window) >= BURST_COUNT:
-                for x in window:
-                    _add(x, "burst")
-        a = r.analysis
-        if is_rating_mismatch(r.rating, a.sentiment if a else None, a.confidence if a else None):
-            _add(r, "rating_mismatch")
+        batches[r.store_id].append(r)
+    for store_id, batch in batches.items():
+        # một truy vấn cho cả lô: mọi review của quán trong ±7 ngày quanh lô (gồm cả chính các review trong lô)
+        times = [as_utc(r.created_at) for r in batch]
+        # lazyload: chỉ cần nội dung và ngày, không nạp kèm phân tích/khía cạnh của hàng nghìn review xung quanh
+        pool = db.scalars(select(Review).options(lazyload("*")).where(
+            Review.store_id == store_id, Review.created_at >= min(times) - span, Review.created_at <= max(times) + span)).all()
+        same = defaultdict(list)  # nội dung đã chuẩn hóa -> các review viết y hệt
+        for o in pool:
+            same[_words(o.content)].append(o)
+        for r in batch:
+            _flag_one(db, r, pool, same, span)
+
+
+def _flag_one(db: Session, r: Review, pool: list[Review], same: dict, span: timedelta) -> None:
+    created = as_utc(r.created_at)
+    if is_gibberish(r.content):
+        _add(r, "gibberish")
+    if len(pool) <= NEAR_LIMIT:
+        candidates = [o for o in pool if is_near_duplicate(r.content, o.content)]
+    else:
+        words = _words(r.content)
+        candidates = same[words] if len(words) >= DUPLICATE_MIN_WORDS else []
+    copies = [o for o in candidates if o.id != r.id and abs(as_utc(o.created_at) - created) <= span]
+    for x in [r, *copies] if copies else []:
+        _add(x, "duplicate")
+    if r.client_hash:
+        window = db.scalars(select(Review).where(
+            Review.store_id == r.store_id, Review.client_hash == r.client_hash,
+            Review.created_at >= created - timedelta(minutes=BURST_MINUTES),
+            Review.created_at <= created + timedelta(minutes=BURST_MINUTES))).all()
+        if len(window) >= BURST_COUNT:
+            for x in window:
+                _add(x, "burst")
+    a = r.analysis
+    if is_rating_mismatch(r.rating, a.sentiment if a else None, a.confidence if a else None):
+        _add(r, "rating_mismatch")

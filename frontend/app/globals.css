@@ -4,12 +4,9 @@
    Menu trái và thanh trên chung một nền đá ấm (giấy, gỗ của quán), không kẻ giữa; phần làm việc là tờ trắng
    viền 1px, bo 16px, không bóng. Màu gần như chỉ nằm trên dữ liệu: xanh mòng két trầm cho đường chính của biểu đồ,
    link và nút chọn; xanh/đỏ khen-chê là nghĩa của dữ liệu. Nút chính màu mực, mỗi màn hình một nút.
-   Trang giới thiệu vẫn dùng các mảng tối (.on-dark: xanh đen + vàng đồng) để kể chuyện. */
+   Trang giới thiệu dùng nền mực (bg-ink) cho phần mở đầu. */
 :root {
-  --navy: #0f1a2e; /* chỉ còn ở các mảng tối của trang giới thiệu */
-  --gold: #e3b04b; /* vàng đồng: chỉ trên nền tối; trên nền sáng dùng cho ngôi sao */
-  --cream: #fcf9f0;
-  --blue: #1b6c80;
+  --gold: #e3b04b; /* vàng của ngôi sao (form góp ý QR) */
 
   --ground: #f4f3f0; /* khung: đá ấm, ít vàng */
   --surface: #ffffff; /* tờ trắng và thẻ */
@@ -30,8 +27,6 @@
   --warn-soft: #fffbeb;
   --star: var(--gold);
   --primary: var(--ink);
-  --sage: var(--border);
-  --on-dark-muted: #aab4c8; /* chữ phụ trên nền tối: 9:1 */
 }
 
 @theme inline {
@@ -54,12 +49,6 @@
   --color-negative: var(--negative);
   --color-star: var(--star);
   --color-primary: var(--primary);
-  --color-navy: var(--navy);
-  --color-blue: var(--blue);
-  --color-gold: var(--gold);
-  --color-cream: var(--cream);
-  --color-sage: var(--sage);
-  --color-on-dark-muted: var(--on-dark-muted);
   --font-sans: var(--font-ui), system-ui, sans-serif;
   --font-display: var(--font-ui), system-ui, sans-serif; /* trước là chữ có chân; giữ tên để các trang cũ không phải sửa */
 }
@@ -91,10 +80,6 @@ body {
     @apply font-normal tracking-[-0.01em];
     font-variant-numeric: lining-nums tabular-nums;
   }
-  /* vùng nền tối: chỉ còn ở trang giới thiệu */
-  .on-dark {
-    @apply bg-navy text-cream;
-  }
   .title {
     @apply text-[22px] leading-7 font-semibold text-ink md:text-[24px] md:leading-8;
   }
@@ -116,12 +101,6 @@ body {
     --dot: #fff;
     --dot-ink: var(--ink);
     @apply border-ink bg-ink text-white;
-  }
-  .btn-gold {
-    /* nút chính trên nền tối */
-    --dot: var(--navy);
-    --dot-ink: var(--gold);
-    @apply border-gold bg-gold text-navy;
   }
   /* nút "đi tiếp" (đăng nhập, gửi, nhập dữ liệu): mũi tên trượt vào bên phải khi rê chuột */
   .btn-go {
@@ -158,9 +137,6 @@ body {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-.on-dark :focus-visible {
-  outline-color: var(--gold);
 }
 
 /* ---------- chuyển động: chỉ transform và opacity; 150ms bấm, 250ms xuất hiện, 600ms màn mở đầu ---------- */
@@ -216,14 +192,8 @@ body {
 @keyframes rise {
   from { opacity: 0; transform: translateY(8px); }
 }
-@keyframes drop {
-  from { opacity: 0; transform: translateY(-8px); }
-}
 @keyframes line-in {
   from { transform: translateY(105%); }
-}
-@keyframes grow-x {
-  from { transform: scaleX(0); }
 }
 @keyframes pop {
   50% { transform: scale(1.25); }
@@ -240,10 +210,6 @@ body {
 .anim-rise {
   animation: rise 0.25s var(--ease) both;
 }
-/* dải cảnh báo rơi xuống từ trên */
-.anim-drop {
-  animation: drop 0.25s var(--ease) both;
-}
 /* chữ lớn trang đăng nhập: mỗi dòng trượt lên từ dưới một đường cắt */
 .line-mask {
   display: block;
@@ -252,11 +218,6 @@ body {
 .line-mask > span {
   display: block;
   animation: line-in 0.6s var(--ease) both;
-}
-/* thanh khen/chê dài ra từ trái */
-.grow-x {
-  transform-origin: left;
-  animation: grow-x 0.6s var(--ease) both;
 }
 /* nảy một lần: số "tiêu cực mới" tăng, sao vừa chọn */
 .pop {
@@ -297,13 +258,6 @@ body {
 }
 .swap-in {
   animation: swap-in 0.25s var(--ease) both;
-}
-/* icon 3D ở trang giới thiệu: lơ lửng nhẹ */
-@keyframes float {
-  50% { transform: translateY(-8px) rotate(-3deg); }
-}
-.float {
-  animation: float 4s ease-in-out infinite;
 }
 /* khung xương: vệt sáng quét qua */
 @keyframes shimmer {
@@ -367,20 +321,3 @@ body {
   }
 }
 
-/* ngoài @layer để thắng tiện ích text-muted: trên nền tối, chữ phụ và nhãn ô nhập phải sáng lên */
-.on-dark .label {
-  color: var(--cream);
-}
-.on-dark .text-muted {
-  color: var(--on-dark-muted);
-}
-/* tấm kem đặt trong vùng tối (form đăng nhập): trả về màu của nền sáng */
-.on-dark .on-light .label {
-  color: var(--blue);
-}
-.on-dark .on-light .text-muted {
-  color: var(--muted);
-}
-.on-dark .on-light :focus-visible {
-  outline-color: var(--blue);
-}

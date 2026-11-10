@@ -10,9 +10,10 @@ services:
       POSTGRES_PASSWORD: feedback
       POSTGRES_DB: feedback
     # mở cổng để chạy backend trực tiếp trên máy mà dùng DB này (docker compose up -d db).
-    # Đang bật PostgreSQL portable (start.bat) thì cổng 5432 đã bận: tắt một trong hai
+    # Chỉ trên 127.0.0.1: mật khẩu feedback/feedback ai cũng biết, mở cho cả mạng LAN (Wi-Fi trường khi demo)
+    # là máy khác vào thẳng được DB. Đang bật PostgreSQL portable (start.bat) thì cổng 5432 đã bận: tắt một trong hai
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data  # dữ liệu giữ lại qua các lần build / tắt bật
     healthcheck:
@@ -43,7 +44,8 @@ services:
       NLP_MODEL_DIR: /models/absa
       OLLAMA_URL: http://ollama:11434
       LLM_MODEL: ${LLM_MODEL:-qwen2.5:3b}
-      SECRET_KEY: ${SECRET_KEY:-dev-secret-change-me}
+      # bắt buộc đặt trong .env: khóa mặc định nằm công khai trên GitHub thì ai cũng dò ngược được IP khách đã băm
+      SECRET_KEY: ${SECRET_KEY:?Chưa đặt SECRET_KEY trong file .env (xem .env.example)}
       APP_URL: ${APP_URL:-http://localhost:3000}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}

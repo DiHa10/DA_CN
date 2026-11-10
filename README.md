@@ -10,7 +10,7 @@
 Chỉ cần cài [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows: bật WSL2 khi được hỏi). Không cần Python, Node, PostgreSQL hay Ollama.
 
 1. (Tùy chọn) Đặt model PhoBERT đã train vào `ml/models/absa/` (518 MB, không có trong git, xin nhóm qua Drive). Không có thì hệ thống tự dùng bộ từ điển, độ chính xác thấp hơn.
-2. (Tùy chọn) Chép `.env.example` thành `.env` để đặt khóa bí mật, Gmail.
+2. Chép `.env.example` thành `.env` và đặt `SECRET_KEY` (bắt buộc, lệnh tạo khóa có trong file). Gmail thì tùy chọn.
 3. Chạy tại thư mục repo:
 ```bash
 docker compose up -d --build

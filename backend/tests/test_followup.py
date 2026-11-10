@@ -86,3 +86,18 @@ def test_summary_previous_period_and_rating_dist(client):
     assert sum(sum(w["sources"].values()) for w in d["trend"]) == 2 and all(set(w["sources"]) == {"csv"} for w in d["trend"])
     assert d["previous"]["total"] == 1 and d["previous"]["avg_rating"] == 4
     assert client.get(f"{base}/dashboard", headers=h).json()["previous"] is None  # toàn bộ lịch sử: không có kỳ trước
+    b = client.get(f"{base}/dashboard?days=7&brief=true", headers=h).json()
+    assert (b["total"], b["sentiment"], b["complaints"]) == (d["total"], d["sentiment"], [])
+
+
+def test_import_dates_vietnamese_style(client):
+    h, base = setup(client)
+    # file tự làm ghi ngày trước tháng, giờ Việt Nam không ghi múi giờ; Apify ghi ISO có múi giờ
+    load(client, h, base, ["Món ăn ngon,07/11/2026 23:30", "Phục vụ chậm,25/10/2026", "Giá rẻ,2026-11-01T05:00:00Z", "Quán đẹp,2026-11-02"])
+    # so thời điểm quy về UTC: Postgres trả "+07:00", SQLite trả "Z", cùng một thời điểm
+    utc = lambda v: datetime.fromisoformat(v.replace("Z", "+00:00")).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M")
+    got = {r["content"]: utc(r["created_at"]) for r in client.get(f"{base}/reviews", headers=h).json()}
+    assert got["Món ăn ngon"] == "2026-11-07T16:30"  # 23:30 giờ VN, không phải tháng 7
+    assert got["Phục vụ chậm"] == "2026-10-24T17:00"  # 0h ngày 25/10 giờ VN
+    assert got["Giá rẻ"] == "2026-11-01T05:00"
+    assert got["Quán đẹp"] == "2026-11-01T17:00"  # ISO không bị đọc thành 11/02

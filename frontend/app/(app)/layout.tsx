@@ -129,7 +129,7 @@ function WeekStats({ storeId }: { storeId: number }) {
   const [data, setData] = useState<Summary | null>(null);
   useEffect(() => {
     let alive = true;
-    const load = () => api<Summary>(`/stores/${storeId}/dashboard?days=7`).then((d) => alive && setData(d), () => {});
+    const load = () => api<Summary>(`/stores/${storeId}/dashboard?days=7&brief=true`).then((d) => alive && setData(d), () => {});
     load();
     const t = setInterval(load, 5 * 60_000);
     return () => { alive = false; clearInterval(t); };

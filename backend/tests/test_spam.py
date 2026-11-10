@@ -68,3 +68,18 @@ def test_flags_hide_and_stats(client, monkeypatch):
     staff = auth_headers(client, "staff@test.vn")
     client.post(f"/stores/{sid}/members", json={"email": "staff@test.vn", "role": "staff"}, headers=owner)
     assert client.put(f"{base}/{flagged[0]['id']}/hidden", json={"hidden": False}, headers=staff).status_code == 403
+
+
+def test_big_import_still_flags_exact_copies(client, monkeypatch):
+    """Nhập file lớn cùng ngày: không so từng cặp (O(n²)) nữa, nhưng bản sao y hệt vẫn bị gắn cờ."""
+    from app.services import spam
+    monkeypatch.setattr(spam, "NEAR_LIMIT", 3)
+    h = auth_headers(client)
+    sid = client.post("/stores", json={"name": "Phở Ngon", "slug": "pho-ngon"}, headers=h).json()["id"]
+    copy = "Quán dở tệ, phục vụ thái độ khó chịu, không bao giờ quay lại"
+    rows = [copy, copy.upper() + "!!", "Phở ngon nước dùng đậm đà vừa miệng, sẽ quay lại lần nữa",
+            "Nhân viên dễ thương, quán sạch sẽ thoáng mát, giá hợp lý với sinh viên", "Ngon"]
+    csv = "content\n" + "\n".join(f'"{r}"' for r in rows) + "\n"  # không có cột ngày: mọi dòng cùng thời điểm
+    client.post(f"/stores/{sid}/reviews/import", files={"file": ("r.csv", csv.encode())}, headers=h)
+    flagged = {r["content"] for r in client.get(f"/stores/{sid}/reviews", params={"spam": "true"}, headers=h).json()}
+    assert flagged == {copy, copy.upper() + "!!"}

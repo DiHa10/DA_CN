@@ -1,4 +1,5 @@
 import io
+import re
 from datetime import date, datetime, timedelta, timezone
 
 import pandas as pd
@@ -15,7 +16,7 @@ from ..security import get_current_user, manager_store, staff_store
 from ..services import reply, spam
 from ..services.analysis import analyze_reviews, apply_corrections
 from ..services.llm import LLMError
-from ..timeutil import vn_date, vn_day_start
+from ..timeutil import VN, vn_date, vn_day_start
 
 router = APIRouter(prefix="/stores/{store_id}/reviews", tags=["reviews"])
 
@@ -152,7 +153,7 @@ async def import_reviews(file: UploadFile, tasks: BackgroundTasks, store: Store 
             skipped += 1
             continue
         rating = pd.to_numeric(_clean(row.get("rating")), errors="coerce")
-        created = pd.to_datetime(_clean(row.get("created_at")), errors="coerce", utc=True)
+        created = _parse_time(_clean(row.get("created_at")))
         author = _clean(row.get("author"))
         if ext:
             existing.add(ext)
@@ -161,7 +162,7 @@ async def import_reviews(file: UploadFile, tasks: BackgroundTasks, store: Store 
             source=str(_clean(row.get("source")) or "csv")[:20],
             rating=int(rating) if not pd.isna(rating) and 1 <= rating <= 5 else None,
             author=str(author)[:200] if author is not None else None,
-            created_at=created.to_pydatetime() if not pd.isna(created) else datetime.now(timezone.utc),
+            created_at=created or datetime.now(timezone.utc),
         ))
     db.add_all(reviews)
     db.commit()
@@ -256,6 +257,24 @@ def set_hidden(review_id: int, body: HiddenIn, store: Store = Depends(manager_st
 def _excel_safe(text: str) -> str:
     # nội dung do khách gõ: chuỗi mở đầu bằng = + - @ sẽ thành công thức khi mở bằng Excel
     return "'" + text if text[:1] in ("=", "+", "-", "@", "\t", "\r") else text
+
+
+def _parse_time(value) -> datetime | None:
+    """Ngày giờ trong file nhập. File do quán tự làm ghi kiểu Việt Nam: ngày trước tháng ("07/11/2026" là 7/11),
+    giờ không kèm múi giờ là giờ Việt Nam. Chuỗi có múi giờ (Apify: "2026-11-07T05:00:00Z") giữ nguyên."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):  # ô ngày của Excel: pandas đọc sẵn thành datetime, không có múi giờ
+        t = pd.Timestamp(value)
+    else:
+        text = str(value).strip()
+        # ISO (năm trước) không được đọc theo kiểu ngày trước: "2026-11-07" vẫn là 7/11
+        t = pd.to_datetime(text, errors="coerce", dayfirst=not re.match(r"\d{4}-", text))
+    if pd.isna(t):
+        return None
+    if t.tzinfo is None:
+        t = t.tz_localize(VN)
+    return t.tz_convert(timezone.utc).to_pydatetime()
 
 
 def _clean(value):
