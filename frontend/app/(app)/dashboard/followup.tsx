@@ -8,11 +8,13 @@ import { Busy } from "@/components/dots";
 import { AXIS_TEXT, EChart, TOOLTIP, type EOption } from "@/components/echart";
 
 const pct = (s: { mentions: number; negative: number }) => formatPct(s.negative, s.mentions);
+// chỉ nói tỉ lệ đổi thế nào, không nói "nhờ việc đã làm": so trước/sau không chứng minh được nguyên nhân
 const VERDICT = {
-  better: ["Giảm rõ", "text-positive"],
-  worse: ["Tăng lên", "text-negative"],
+  better: ["Tỉ lệ chê giảm rõ", "text-positive"],
+  worse: ["Tỉ lệ chê tăng rõ", "text-negative"],
   same: ["Chưa khác biệt rõ", "text-muted"],
 } as const;
+const WINDOW_DAYS = 28;
 
 // số thứ tự theo ngày áp dụng (cũ nhất là 1), dùng chung cho danh sách và vạch trên biểu đồ xu hướng
 export const actionNumbers = (actions: Action[]) =>
@@ -59,7 +61,10 @@ export function ActionsPanel({ storeId, actions, canEdit, onChange }: {
     <section className="panel">
       <div className="px-5 pt-4">
         <h2 className="heading">Việc quán đã thay đổi</h2>
-        <p className="text-xs text-muted">Tỉ lệ chê 4 tuần trước và 4 tuần sau ngày áp dụng. Số thứ tự khớp vạch trên biểu đồ xu hướng.</p>
+        <p className="text-xs text-muted">
+          Tỉ lệ chê 4 tuần trước và 4 tuần sau ngày áp dụng, kết luận khi đủ 4 tuần. Chỉ cho biết tỉ lệ có đổi hay không;
+          mùa vụ, lượng khách cũng làm tỉ lệ đổi. Số thứ tự khớp vạch trên biểu đồ xu hướng.
+        </p>
       </div>
       {actions.length === 0 ? (
         <p className="px-5 py-3 text-sm text-muted">
@@ -76,14 +81,21 @@ export function ActionsPanel({ storeId, actions, canEdit, onChange }: {
                   <p className="font-medium">{a.note}</p>
                   <p className="text-xs text-muted">
                     Từ {formatDate(a.day)} · {a.aspect ? ASPECT_LABEL[a.aspect] ?? a.aspect : "Tổng thể"}
-                    {a.after_days < 28 && ` · mới qua ${a.after_days} ngày`}
+                    {a.after_days < WINDOW_DAYS && ` · mới qua ${a.after_days} ngày`}
                   </p>
                   <p className="mt-1 text-sm">
                     {a.enough ? (
                       <>
                         Tỉ lệ chê <span className="num">{pct(a.before)}</span> → <span className="num">{pct(a.after)}</span>
                         <span className="text-muted"> ({a.before.negative}/{a.before.mentions} → {a.after.negative}/{a.after.mentions} lượt nhắc)</span>
-                        {" "}<b className={`font-medium ${color}`}>{label}</b>
+                        {" "}
+                        {a.verdict ? <b className={`font-medium ${color}`}>{label}</b>
+                          : <span className="text-muted">Kết luận sau {WINDOW_DAYS - a.after_days} ngày nữa</span>}
+                        {a.verdict === "better" && a.spike_before && (
+                          <span className="mt-1 block text-xs text-muted">
+                            4 tuần trước mốc đang bị chê nhiều bất thường so với trước đó; một phần mức giảm có thể là tự trở về bình thường.
+                          </span>
+                        )}
                       </>
                     ) : (
                       <span className="text-muted">

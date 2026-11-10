@@ -81,7 +81,8 @@ export type Action = {
   after: Side;
   after_days: number;
   enough: boolean;
-  verdict: "better" | "worse" | "same" | null;
+  verdict: "better" | "worse" | "same" | null; // null: chưa đủ dữ liệu hoặc chưa đủ 28 ngày sau mốc
+  spike_before: boolean; // 4 tuần trước mốc đang cao bất thường: phần giảm có thể là tự hạ về mức thường
 };
 
 export type Insight = {

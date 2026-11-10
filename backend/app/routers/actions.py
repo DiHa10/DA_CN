@@ -17,36 +17,47 @@ from ..timeutil import as_utc, vn_date, vn_day_start
 router = APIRouter(prefix="/stores/{store_id}/actions", tags=["actions"])
 
 WINDOW = timedelta(days=28)
+HISTORY = timedelta(weeks=8)  # mức thường của quán, trước cửa sổ "trước mốc"
 MIN_MENTIONS = 5  # mỗi bên ít hơn số lượt nhắc này thì chưa kết luận
 SIGNIFICANT_Z = 1.96  # 95%: chênh lệch khó là ngẫu nhiên
 
 
 def impact(db: Session, action: StoreAction, now: datetime) -> dict:
-    """Lượt nhắc và lượt chê khía cạnh của mốc (hoặc tổng thể) trong 28 ngày trước và tới 28 ngày sau mốc."""
+    """Lượt nhắc và lượt chê khía cạnh của mốc (hoặc tổng thể) trong 28 ngày trước và tới 28 ngày sau mốc.
+
+    Chỉ so sánh, không chứng minh nhân quả: mùa vụ, lượng khách cũng làm tỉ lệ chê đổi. Hai chốt để bớt kết luận sai:
+    - chỉ kết luận khi đủ 28 ngày sau mốc: tính lại z mỗi ngày trên cửa sổ đang dài ra thì sớm muộn cũng vượt ngưỡng do ngẫu nhiên;
+    - spike_before: 28 ngày trước mốc đang cao bất thường so với 8 tuần trước đó. Quán hay ghi mốc ngay sau đợt bị chê,
+      đợt cao tự hạ về mức thường (hồi quy về trung bình) nên "giảm rõ" lúc đó chưa chắc nhờ việc đã làm.
+    """
     start = vn_day_start(action.day)
     end = min(start + WINDOW, now)
-    rows = db.scalars(select(Review).where(Review.store_id == action.store_id, Review.created_at >= start - WINDOW,
+    rows = db.scalars(select(Review).where(Review.store_id == action.store_id, Review.created_at >= start - WINDOW - HISTORY,
                                            Review.created_at < end, counted())).all()
-    side = {True: [0, 0], False: [0, 0]}  # sau mốc? -> [lượt nhắc, lượt chê]
+    side = {"history": [0, 0], "before": [0, 0], "after": [0, 0]}  # -> [lượt nhắc, lượt chê]
     for r in rows:
         if not r.analysis:
             continue
         labels = [r.analysis.sentiment] if action.aspect is None else [a.sentiment for a in r.aspects if a.aspect == action.aspect]
-        c = side[as_utc(r.created_at) >= start]
+        t = as_utc(r.created_at)
+        c = side["after" if t >= start else "before" if t >= start - WINDOW else "history"]
         for s in labels:
             c[0] += 1
             c[1] += s == "negative"
-    (bn, bneg), (an, aneg) = side[False], side[True]
+    (hn, hneg), (bn, bneg), (an, aneg) = side["history"], side["before"], side["after"]
+    after_days = max(0, (vn_date(now) - action.day).days)  # mốc mới đặt thì "sau" mới có vài ngày
     enough = bn >= MIN_MENTIONS and an >= MIN_MENTIONS
     z = round(z_score(aneg, an, bneg, bn), 2) if enough else None
+    final = z is not None and after_days >= WINDOW.days
     return {
         "before": {"mentions": bn, "negative": bneg},
         "after": {"mentions": an, "negative": aneg},
-        "after_days": max(0, (vn_date(now) - action.day).days),  # mốc mới đặt thì "sau" mới có vài ngày
+        "after_days": after_days,
         "enough": enough,
-        # better: giảm rõ | worse: tăng rõ | same: chưa thấy khác biệt chắc chắn
-        "verdict": None if z is None else "better" if z <= -SIGNIFICANT_Z else "worse" if z >= SIGNIFICANT_Z else "same",
+        # better: tỉ lệ chê giảm rõ | worse: tăng rõ | same: chưa thấy khác biệt chắc chắn | None: chưa đủ dữ liệu hoặc chưa đủ 28 ngày
+        "verdict": None if not final else "better" if z <= -SIGNIFICANT_Z else "worse" if z >= SIGNIFICANT_Z else "same",
         "z": z,
+        "spike_before": bn >= MIN_MENTIONS and hn >= 2 * MIN_MENTIONS and z_score(bneg, bn, hneg, hn) >= SIGNIFICANT_Z,
     }
 
 

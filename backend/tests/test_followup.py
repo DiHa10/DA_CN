@@ -38,20 +38,26 @@ def test_complaint_status(client):
 def test_action_impact(client):
     h, base = setup(client)
     today = datetime.now(VN).date()
-    day = today - timedelta(days=10)
+    day = today - timedelta(days=30)
     at = lambda d: datetime.combine(d, datetime.min.time(), VN).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    # 4 tuần trước mốc: 8/10 lượt chê phục vụ; sau mốc: 1/10; review trước cửa sổ 28 ngày không tính
+    # 4 tuần trước mốc: 8/10 lượt chê phục vụ; sau mốc: 1/10
+    # 8 tuần trước đó: 0/10 chê -> "trước mốc" là đợt cao bất thường (spike_before), không tính vào "trước"
     rows = [f"Phục vụ chậm quá,{at(day - timedelta(days=3))}"] * 8 + [f"Phục vụ nhanh nhân viên vui vẻ,{at(day - timedelta(days=3))}"] * 2
-    rows += [f"Phục vụ chậm quá,{at(day - timedelta(days=40))}"] * 5
+    rows += [f"Phục vụ nhanh nhân viên vui vẻ,{at(day - timedelta(days=40))}"] * 10
+    rows += [f"Phục vụ nhanh nhân viên vui vẻ,{at(today - timedelta(days=1))}"] * 5  # sau cửa sổ 28 ngày của mốc chính
     rows += [f"Phục vụ chậm quá,{at(day + timedelta(days=2))}"] + [f"Phục vụ nhanh nhân viên vui vẻ,{at(day + timedelta(days=2))}"] * 9
     load(client, h, base, rows)
 
     a = client.post(f"{base}/actions", json={"day": day.isoformat(), "aspect": "service", "note": "Thêm 1 người ca trưa"}, headers=h).json()
-    assert (a["before"], a["after"], a["after_days"]) == ({"mentions": 10, "negative": 8}, {"mentions": 10, "negative": 1}, 10)
-    assert a["verdict"] == "better" and a["enough"]
+    assert (a["before"], a["after"], a["after_days"]) == ({"mentions": 10, "negative": 8}, {"mentions": 10, "negative": 1}, 30)
+    assert a["verdict"] == "better" and a["enough"] and a["spike_before"]
+    # mốc mới qua 5 ngày: đủ lượt nhắc, có số, nhưng chưa kết luận (cửa sổ "sau" còn đang dài ra)
+    c = client.post(f"{base}/actions", json={"day": (today - timedelta(days=5)).isoformat(), "aspect": "service", "note": "Đổi ca"}, headers=h).json()
+    assert (c["after_days"], c["after"]["mentions"], c["enough"], c["verdict"]) == (5, 5, True, None)
     # khía cạnh không ai nhắc: chưa đủ dữ liệu, không kết luận
     b = client.post(f"{base}/actions", json={"day": day.isoformat(), "aspect": "location", "note": "Thêm biển chỉ đường"}, headers=h).json()
-    assert (b["enough"], b["verdict"]) == (False, None)
+    assert (b["enough"], b["verdict"], b["spike_before"]) == (False, None, False)
+    assert client.delete(f"{base}/actions/{c['id']}", headers=h).status_code == 204
 
     assert client.post(f"{base}/actions", json={"day": (today + timedelta(days=1)).isoformat(), "note": "Sắp làm"}, headers=h).status_code == 400
     assert client.post(f"{base}/actions", json={"day": day.isoformat(), "aspect": "wifi", "note": "Lắp wifi"}, headers=h).status_code == 400
