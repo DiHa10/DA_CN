@@ -26,13 +26,16 @@ def test_endpoint_flags_rising_aspect(client, monkeypatch):
     for week in range(1, 9):  # 8 tuần trước: mỗi tuần 3 khen 1 chê phục vụ
         d = 7 * week + 2
         rows += [f"Phục vụ nhanh nhân viên vui vẻ,{at(d)}"] * 3 + [f"Phục vụ chậm quá,{at(d)}"]
-    rows += [f"Phục vụ chậm đợi lâu,{at(1)}"] * 6 + [f"Phục vụ nhanh nhân viên vui vẻ,{at(2)}", f"Món ăn ngon,{at(1)}"]
+    rows += [f"Phục vụ chậm đợi lâu,{at(2)}"] * 6 + [f"Phục vụ nhanh nhân viên vui vẻ,{at(2)}", f"Món ăn ngon,{at(1)}"]
     csv = "content,created_at\n" + "\n".join(rows) + "\n"
     assert client.post(f"/stores/{sid}/reviews/import", files={"file": ("r.csv", csv.encode())}, headers=h).status_code == 201
 
     out = client.get(f"/stores/{sid}/dashboard/anomalies", headers=h).json()
     assert {a["aspect"] for a in out["alerts"]} == {"service", None}  # phục vụ và tổng thể; món ăn thì không
     service = next(a for a in out["alerts"] if a["aspect"] == "service")
+    # cùng dữ liệu nhìn từ 1,5 ngày trước: cửa sổ tới hôm đó đã bất thường nhưng cửa sổ tới hôm trước nữa chưa -> chưa báo
+    with SessionLocal() as db:
+        assert anomaly.detect(db, sid, now - timedelta(days=1.5))["alerts"] == []
     assert (service["mentions"], service["negative"], service["baseline_rate"]) == (7, 6, 0.25)
     assert out["since"] == (now - timedelta(days=7)).astimezone(timezone(timedelta(hours=7))).date().isoformat()
 
